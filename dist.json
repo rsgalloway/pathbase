@@ -9,10 +9,6 @@
             "source": "lib/pathbase",
             "destination": "{DEPLOY_ROOT}/lib/python/pathbase"
         },
-        "env": {
-            "source": "pathbase.env",
-            "destination": "{DEPLOY_ROOT}/env/pathbase.env"
-        },
         "env_vfx": {
             "source": "examples/vfx/pathbase.env",
             "destination": "{DEPLOY_ROOT}/env/pathbase.env"

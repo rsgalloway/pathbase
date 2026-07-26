@@ -32,9 +32,27 @@ If you are using envstack, you can point `ENVPATH` at one of the example env
 directories and let envstack provide the template values to `pathbase`:
 
 ```bash
-export ENVPATH=./examples/vfx
-pathbase parse \
+ENVPATH=./examples/vfx/ pathbase parse \
   '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "descriptor": "beauty",
+    "ext": "exr",
+    "frame": 1001,
+    "sequence": "seq001",
+    "shot": "shot010",
+    "show": "bigbuckbunny",
+    "step": "lighting",
+    "task": "render",
+    "version": 1
+  },
+  "template": "FILEPATH"
+}
 ```
 
 This keeps the template definitions outside the shell command itself while still
@@ -142,11 +160,10 @@ Expected output:
 
 ## Envstack Example
 
-The repository includes a generic sample [pathbase.env](../pathbase.env)
-and several domain-specific env examples under
-[examples/README.md](../examples/README.md), showing
-how template strings can be supplied from environment configuration while
-keeping `pathbase` itself dependency-free.
+The repository includes several domain-specific env examples under
+[examples/README.md](../examples/README.md), showing how template strings can
+be supplied from environment configuration while keeping `pathbase` itself
+dependency-free.
 
 For the shared-defaults plus project-overrides pattern, see
 [Overrides](overrides.md).

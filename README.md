@@ -48,9 +48,27 @@ Expected output:
 The same flow also works well with envstack-managed templates. For example:
 
 ```bash
-export ENVPATH=./examples/vfx
-pathbase parse \
+ENVPATH=./examples/vfx/ pathbase parse \
   '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "descriptor": "beauty",
+    "ext": "exr",
+    "frame": 1001,
+    "sequence": "seq001",
+    "shot": "shot010",
+    "show": "bigbuckbunny",
+    "step": "lighting",
+    "task": "render",
+    "version": 1
+  },
+  "template": "FILEPATH"
+}
 ```
 
 You can also work with templates directly from Python:

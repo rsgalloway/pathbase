@@ -6,22 +6,7 @@
 The root `dist.json` distributes:
 
 - the `pathbase` Python package
-- the generic root `pathbase.env`
 - several example `pathbase.env` files under named targets
-
-## Disting the Default Env File
-
-To preview distributing the generic root config:
-
-```bash
-dist -d -t env
-```
-
-To actually distribute it:
-
-```bash
-dist -t env
-```
 
 ## Disting an Example Flavor
 

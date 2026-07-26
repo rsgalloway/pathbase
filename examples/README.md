@@ -5,7 +5,6 @@ use cases.
 
 Available examples:
 
-- [Generic](../pathbase.env)
 - [VFX](vfx/README.md)
 - [Animation](animation/README.md)
 - [Data Pipeline](data-pipeline/README.md)
