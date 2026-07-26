@@ -81,6 +81,56 @@ folder layout, and changes the filename pattern for one project.
 
 Overrides should come from envstack hierarchy, not from ad hoc shell exports.
 
+## Current and Legacy Templates
+
+Sometimes a production changes its filepath spec over time but still needs to
+parse older paths. A practical pattern is to keep one canonical write template
+and one or more legacy read templates in the same environment.
+
+For example:
+
+```yaml
+#!/usr/bin/env envstack
+include: [default]
+
+all: &all
+  SHOW_ROOT: ${ROOT}/{show}
+  SEQUENCE_ROOT: ${SHOW_ROOT}/{sequence}
+  SHOT_ROOT: ${SEQUENCE_ROOT}/{shot}
+  STEP_ROOT: ${SHOT_ROOT}/{step}
+
+  # Current template used for formatting new paths.
+  FILEPATH: ${STEP_ROOT}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}
+
+  # Older layouts kept around for parsing historical data.
+  FILEPATH_V1: ${SHOT_ROOT}/{task}/{task}_{descriptor}.{frame:04d}.{ext}
+  FILEPATH_V2: ${STEP_ROOT}/{task}_{descriptor}.{frame:04d}.{ext}
+```
+
+This gives you a simple convention:
+
+- `FILEPATH` is the current authoritative write template
+- `FILEPATH_V*` values remain available for parsing older paths
+- new publishes use the current layout, while old files still round-trip cleanly
+
+In application code, formatting can stay explicit:
+
+```python
+from pathbase import Template
+
+template = Template.from_env("FILEPATH")
+```
+
+For parsing, `pathbase parse PATH` and `match_template(path)` can match against
+any compatible template present in the environment.
+
+A few conventions help keep this maintainable:
+
+- keep field names stable across template generations when the meaning is the same
+- prefer one current write template instead of writing through multiple variants
+- expect legacy templates to omit some newer fields
+- watch for ambiguity when two historical templates can both match the same path
+
 ## Using the Resolved Template in Python
 
 Once the environment is activated or resolved outside of `pathbase`, the
