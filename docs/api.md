@@ -15,6 +15,60 @@ This is the most important integration pattern for many tools: start with a
 real filepath, let `pathbase` discover the matching template automatically, and
 get the parsed fields back.
 
+If you want the shortest Python API version of that flow, use
+`Template.from_path(...)` and then parse through the returned template object.
+
+```python
+from pathbase import Template
+
+path = "/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr"
+
+template = Template.from_path(path)
+fields = template.parse(path)
+
+print(template.template)
+print(fields)
+```
+
+Expected output:
+
+```text
+${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}
+```
+
+```python
+{
+    "show": "bigbuckbunny",
+    "sequence": "seq001",
+    "shot": "shot010",
+    "step": "lighting",
+    "task": "render",
+    "descriptor": "beauty",
+    "version": 1,
+    "frame": 1001,
+    "ext": "exr",
+}
+```
+
+Once you have the discovered template object, you can round-trip the parsed
+fields back through it. For example, bump the version and format the next path:
+
+```python
+fields["version"] = fields["version"] + 1
+
+next_path = template.format(**fields)
+print(next_path)
+```
+
+Expected output:
+
+```text
+/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v002.1001.exr
+```
+
+If you also want the matched environment variable name, use
+`match_template(...)`:
+
 ```python
 from pathbase import match_template
 
@@ -113,54 +167,6 @@ Choose based on the paths your tools need to parse:
 
 - `{frame:04d}` for concrete frame files with numeric typing
 - `{frame}` for flexible frame tokens, including frame pads like `%04d` and `%08d`
-
-## Build a Template From a Path and Parse It
-
-If you want a `Template` object first and then want to inspect or parse through
-that object, use `Template.from_path(...)`.
-
-```python
-from pathbase import Template, match_template
-
-env = {
-    "ROOT": "/mnt/projects",
-    "FILEPATH": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
-    "FILEPATH_V1": "${ROOT}/{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}",
-    "FILEPATH_V2": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}",
-}
-
-path = "/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_f1001.exr"
-
-template_name, _ = match_template(path, env=env)
-template = Template.from_path(path, env=env)
-
-print(template_name)
-print(template.template)
-print(template.parse(path))
-```
-
-Expected output:
-
-```text
-FILEPATH_V2
-```
-
-```text
-${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}
-```
-
-```python
-{
-    "show": "bigbuckbunny",
-    "sequence": "seq001",
-    "shot": "shot010",
-    "step": "lighting",
-    "task": "render",
-    "descriptor": "beauty",
-    "frame": 1001,
-    "ext": "exr",
-}
-```
 
 ## Format a Path
 
