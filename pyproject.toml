@@ -61,3 +61,6 @@ skip_gitignore = true
 [tool.black]
 line-length = 100
 target-version = ["py38"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
