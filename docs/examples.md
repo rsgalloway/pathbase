@@ -142,9 +142,9 @@ Expected output:
 
 ## Envstack Example
 
-The repository includes a generic sample [pathbase.env](/mnt/homes/rsg/dev/pathbase/pathbase.env)
+The repository includes a generic sample [pathbase.env](../pathbase.env)
 and several domain-specific env examples under
-[examples/README.md](/mnt/homes/rsg/dev/pathbase/examples/README.md), showing
+[examples/README.md](../examples/README.md), showing
 how template strings can be supplied from environment configuration while
 keeping `pathbase` itself dependency-free.
 

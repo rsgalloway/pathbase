@@ -35,7 +35,7 @@ try:
     import envstack
 
     envstack.init("pathbase")
-except Exception:
+except ImportError:
     pass
 
 from pathbase.exceptions import (
