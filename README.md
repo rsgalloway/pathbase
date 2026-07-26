@@ -45,7 +45,8 @@ Expected output:
 }
 ```
 
-The same flow also works well with envstack-managed templates. For example:
+The same flow also works well with [envstack-managed templates](https://envstack.dev).
+For example:
 
 ```bash
 ENVPATH=./examples/vfx/ pathbase parse \

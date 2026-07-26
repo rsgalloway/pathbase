@@ -58,6 +58,97 @@ Expected output:
 This keeps the template definitions outside the shell command itself while still
 letting `pathbase` discover the matching template from the environment.
 
+## Parse Current and Legacy Template Variants
+
+`pathbase parse PATH` does not require the caller to know whether a path matches
+the current template or a legacy variant. If your environment contains
+`FILEPATH`, `FILEPATH_V1`, and `FILEPATH_V2`, path discovery will try all of
+them and return the matching template name.
+
+Example environment:
+
+```bash
+export FILEPATH='{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}'
+export FILEPATH_V1='{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}'
+export FILEPATH_V2='{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}'
+```
+
+Current filepath:
+
+```bash
+pathbase parse 'bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "descriptor": "beauty",
+    "ext": "exr",
+    "frame": 1001,
+    "sequence": "seq001",
+    "shot": "shot010",
+    "show": "bigbuckbunny",
+    "step": "lighting",
+    "task": "render",
+    "version": 1
+  },
+  "template": "FILEPATH"
+}
+```
+
+Legacy `V1` filepath:
+
+```bash
+pathbase parse 'bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "descriptor": "beauty",
+    "ext": "exr",
+    "frame": 1001,
+    "sequence": "seq001",
+    "shot": "shot010",
+    "show": "bigbuckbunny",
+    "task": "render"
+  },
+  "template": "FILEPATH_V1"
+}
+```
+
+Legacy `V2` filepath:
+
+```bash
+pathbase parse 'bigbuckbunny/seq001/shot010/lighting/render_beauty_f1001.exr'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "descriptor": "beauty",
+    "ext": "exr",
+    "frame": 1001,
+    "sequence": "seq001",
+    "shot": "shot010",
+    "show": "bigbuckbunny",
+    "step": "lighting",
+    "task": "render"
+  },
+  "template": "FILEPATH_V2"
+}
+```
+
+This is already supported today as long as the template shapes are distinct. If
+more than one template matches the same path shape, `pathbase` reports that
+ambiguity explicitly rather than guessing.
+
 ## Basic Formatting
 
 ```python

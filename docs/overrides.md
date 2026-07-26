@@ -18,22 +18,18 @@ A shared production template file might look like this:
 ```yaml
 #!/usr/bin/env envstack
 include: [default]
-
 all: &all
   SHOW_ROOT: ${ROOT}/{show}
   SEQUENCE_ROOT: ${SHOW_ROOT}/{sequence}
   SHOT_ROOT: ${SEQUENCE_ROOT}/{shot}
   STEP_ROOT: ${SHOT_ROOT}/{step}
   FILEPATH: ${STEP_ROOT}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}
-
 linux:
   <<: *all
   ROOT: /mnt/projects
-
 darwin:
   <<: *all
   ROOT: /Volumes/projects
-
 windows:
   <<: *all
   ROOT: D:/projects
@@ -55,23 +51,17 @@ For example, `bigbuckbunny/env/pathbase.env` could look like this:
 ```yaml
 #!/usr/bin/env envstack
 include: [default]
-
 all: &all
   SHOW: bigbuckbunny
   SHOW_ROOT: ${ROOT}/bigbuckbunny
-
   # This show uses department-specific work areas under a tasks folder.
   STEP_ROOT: ${SHOT_ROOT}/tasks/{step}
-
   # This show also includes the shot in the filename itself.
   FILEPATH: ${STEP_ROOT}/{shot}_{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}
-
 linux:
   <<: *all
-
 darwin:
   <<: *all
-
 windows:
   <<: *all
 ```
@@ -92,16 +82,13 @@ For example:
 ```yaml
 #!/usr/bin/env envstack
 include: [default]
-
 all: &all
   SHOW_ROOT: ${ROOT}/{show}
   SEQUENCE_ROOT: ${SHOW_ROOT}/{sequence}
   SHOT_ROOT: ${SEQUENCE_ROOT}/{shot}
   STEP_ROOT: ${SHOT_ROOT}/{step}
-
   # Current template used for formatting new paths.
   FILEPATH: ${STEP_ROOT}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}
-
   # Older layouts kept around for parsing historical data.
   FILEPATH_V1: ${SHOT_ROOT}/{task}/{task}_{descriptor}.{frame:04d}.{ext}
   FILEPATH_V2: ${STEP_ROOT}/{task}_{descriptor}.{frame:04d}.{ext}

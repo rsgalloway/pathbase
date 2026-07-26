@@ -83,6 +83,57 @@ def write_layout(output_dir: Path) -> None:
         {{ content }}
       </main>
     </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        var blocks = document.querySelectorAll("pre");
+
+        function setButtonState(button, label) {
+          button.textContent = label;
+          window.setTimeout(function () {
+            button.textContent = "Copy";
+          }, 1200);
+        }
+
+        blocks.forEach(function (block) {
+          var code = block.querySelector("code");
+          if (!code) {
+            return;
+          }
+
+          var button = document.createElement("button");
+          button.className = "copy-button";
+          button.type = "button";
+          button.textContent = "Copy";
+
+          button.addEventListener("click", function () {
+            var text = code.innerText;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(text).then(function () {
+                setButtonState(button, "Copied");
+              });
+              return;
+            }
+
+            var selection = window.getSelection();
+            var range = document.createRange();
+            range.selectNodeContents(code);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            try {
+              document.execCommand("copy");
+              setButtonState(button, "Copied");
+            } finally {
+              selection.removeAllRanges();
+            }
+          });
+
+          block.classList.add("code-block");
+          block.appendChild(button);
+        });
+      });
+    </script>
   </body>
 </html>
 """
@@ -94,14 +145,18 @@ def write_stylesheet(output_dir: Path) -> None:
     assets_dir = output_dir / "assets"
     assets_dir.mkdir(parents=True, exist_ok=True)
     css = """:root {
-  --bg: #ffffff;
+  --bg: #f5f8fc;
   --panel: #ffffff;
-  --border: #d9e2ec;
-  --text: #102033;
-  --muted: #516172;
-  --accent: #006f5f;
-  --accent-dark: #004e43;
-  --code: #f4f8fb;
+  --panel-strong: #e8eef6;
+  --border: #c9d4e2;
+  --text: #122033;
+  --muted: #4f5f73;
+  --accent: #0b6bcb;
+  --accent-dark: #084f98;
+  --code-bg: #0f172a;
+  --code-border: #1e293b;
+  --code-text: #e2e8f0;
+  --code-muted: #93a4ba;
 }
 
 * { box-sizing: border-box; }
@@ -111,7 +166,7 @@ html, body {
   padding: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   line-height: 1.7;
 }
 
@@ -125,7 +180,7 @@ a:hover {
 }
 
 .site-shell {
-  max-width: 1040px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 24px 24px 72px;
 }
@@ -136,12 +191,18 @@ a:hover {
   gap: 16px 24px;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 36px;
+  margin: 12px 0 36px;
+  padding: 18px 22px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(8px);
 }
 
 .site-brand {
   color: var(--text);
-  font-size: 0.98rem;
+  font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.01em;
 }
@@ -162,7 +223,11 @@ a:hover {
 }
 
 .site-main {
-  background: transparent;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.08);
+  padding: 42px 48px 56px;
 }
 
 .site-main h1:first-child,
@@ -176,7 +241,7 @@ h1, h2, h3 {
 }
 
 h1 {
-  font-size: 2.7rem;
+  font-size: 2.8rem;
   margin: 0 0 1rem;
 }
 
@@ -199,24 +264,48 @@ code, pre {
 }
 
 code {
-  background: var(--code);
-  border: 1px solid #e4ebf2;
+  background: #eef4fb;
+  border: 1px solid #d8e3ef;
   border-radius: 8px;
   padding: 0.12rem 0.4rem;
 }
 
 pre {
-  background: var(--code);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  background: linear-gradient(180deg, #111b31 0%, #0f172a 100%);
+  border: 1px solid var(--code-border);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: var(--code-text);
   overflow-x: auto;
-  padding: 18px 20px;
+  padding: 22px 22px 20px;
+  position: relative;
 }
 
 pre code {
   background: transparent;
   border: 0;
+  color: var(--code-text);
   padding: 0;
+}
+
+.copy-button {
+  appearance: none;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 999px;
+  color: var(--code-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.28rem 0.7rem;
+  position: absolute;
+  right: 14px;
+  top: 12px;
+}
+
+.copy-button:hover {
+  background: rgba(148, 163, 184, 0.18);
+  border-color: rgba(148, 163, 184, 0.42);
 }
 
 blockquote {
@@ -238,12 +327,27 @@ th, td {
 }
 
 th {
-  background: #f2f6fa;
+  background: #f1f6fb;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
 }
 
 @media (max-width: 720px) {
   .site-shell {
     padding: 18px 16px 56px;
+  }
+
+  .site-header {
+    padding: 14px 16px;
+  }
+
+  .site-main {
+    border-radius: 22px;
+    padding: 28px 20px 38px;
   }
 
   h1 {
