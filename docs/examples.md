@@ -26,6 +26,10 @@ Expected output:
 This is useful when the caller has a real path and wants the extracted tokens
 without manually specifying the template name.
 
+The same auto-discovery model is available in Python API integrations via
+`match_template(path, env=...)` and `Template.from_path(path, env=...)`. See
+[API](api.md) for examples.
+
 ## Parse a Filepath Using `ENVPATH`
 
 If you are using envstack, you can point `ENVPATH` at one of the example env
@@ -104,6 +108,9 @@ Legacy `V1` filepath:
 pathbase parse 'bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr'
 ```
 
+This path does not require `--template FILEPATH_V1`. `pathbase` discovers that
+it matches `FILEPATH_V1` automatically.
+
 Expected output:
 
 ```json
@@ -118,6 +125,42 @@ Expected output:
     "task": "render"
   },
   "template": "FILEPATH_V1"
+}
+```
+
+Equivalent Python API flow:
+
+```python
+from pathbase import match_template
+
+env = {
+    "FILEPATH": "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
+    "FILEPATH_V1": "{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}",
+    "FILEPATH_V2": "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}",
+}
+
+path = "bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr"
+template_name, template = match_template(path, env=env)
+
+print(template_name)
+print(template.parse(path))
+```
+
+Expected output:
+
+```text
+FILEPATH_V1
+```
+
+```python
+{
+    "show": "bigbuckbunny",
+    "sequence": "seq001",
+    "shot": "shot010",
+    "task": "render",
+    "descriptor": "beauty",
+    "frame": 1001,
+    "ext": "exr",
 }
 ```
 

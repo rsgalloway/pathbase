@@ -5,12 +5,15 @@ applications, pipeline tooling, and environment-driven template setups.
 
 Available guides:
 
+- [API](api.md)
 - [Examples](examples.md)
 - [Overrides](overrides.md)
 - [Distribution](distribution.md)
 
 If you are new to `pathbase`, start with the examples guide for formatting,
 parsing, and `Template.from_env(...)` usage. If you are integrating `pathbase`
-with shared pipeline configuration, then the overrides guide is the next place
-to go, including patterns for project overrides and legacy template support. If
-you want to ship env files with `distman`, see the distribution guide.
+into tools or pipeline code, the API guide is the fastest reference. If you are
+integrating `pathbase` with shared pipeline configuration, then the overrides
+guide is the next place to go, including patterns for project overrides and
+legacy template support. If you want to ship env files with `distman`, see the
+distribution guide.
