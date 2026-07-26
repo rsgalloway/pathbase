@@ -165,6 +165,16 @@ The repository includes several domain-specific env examples under
 be supplied from environment configuration while keeping `pathbase` itself
 dependency-free.
 
+Available example flavors:
+
+- [Examples Overview](../examples/README.md)
+- [VFX](../examples/vfx/README.md)
+- [Animation](../examples/animation/README.md)
+- [Data Pipeline](../examples/data-pipeline/README.md)
+- [Logs](../examples/logs/README.md)
+- [ML Artifacts](../examples/ml-artifacts/README.md)
+- [Overrides](../examples/overrides/README.md)
+
 For the shared-defaults plus project-overrides pattern, see
 [Overrides](overrides.md).
 

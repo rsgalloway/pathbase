@@ -11,19 +11,14 @@ import shutil
 from pathlib import Path
 from typing import Iterable
 
-LINK_PATTERNS = (
-    (r"\(README\.md\)", "(index.html)"),
-    (r"\(docs/README\.md\)", "(docs/index.html)"),
-    (r"\(docs/([^)]+)\.md\)", r"(docs/\1.html)"),
-    (r"\(([^:)#]+)\.md\)", r"(\1.html)"),
-)
+README_LINK_RE = re.compile(r"\(([^)#]*?)README\.md(#.*?)?\)")
+MARKDOWN_LINK_RE = re.compile(r"\(([^:)#][^)]*?)\.md(#.*?)?\)")
 
 
 def rewrite_links(content: str) -> str:
     """Rewrite local markdown links for generated HTML output."""
-    updated = content
-    for pattern, replacement in LINK_PATTERNS:
-        updated = re.sub(pattern, replacement, updated)
+    updated = README_LINK_RE.sub(r"(\1index.html\2)", content)
+    updated = MARKDOWN_LINK_RE.sub(r"(\1.html\2)", updated)
     return updated
 
 
@@ -78,7 +73,7 @@ def write_layout(output_dir: Path) -> None:
         <a class="site-brand" href="{{ '/' | relative_url }}">{{ site.title }}</a>
         <nav class="site-nav">
           <a href="{{ '/' | relative_url }}">Home</a>
-          <a href="{{ '/docs/examples/' | relative_url }}">Examples</a>
+          <a href="{{ '/examples/' | relative_url }}">Examples</a>
           <a href="{{ '/docs/overrides/' | relative_url }}">Overrides</a>
           <a href="https://github.com/rsgalloway/pathbase">GitHub</a>
           <a href="https://pypi.org/project/pathbase/">PyPI</a>
@@ -259,10 +254,15 @@ th {
     (assets_dir / "site.css").write_text(css, encoding="utf-8")
 
 
-def copy_markdown_tree(root: Path, output_dir: Path, docs_files: Iterable[Path]) -> None:
+def copy_markdown_tree(
+    root: Path, output_dir: Path, docs_files: Iterable[Path], examples_dir: Path
+) -> None:
     """Copy repository markdown files into the generated site tree."""
     write_markdown_page(root / "README.md", output_dir / "index.md", "pathbase")
     write_markdown_page(root / "docs" / "README.md", output_dir / "docs" / "index.md", "Docs")
+    write_markdown_page(
+        examples_dir / "README.md", output_dir / "examples" / "index.md", "Examples"
+    )
 
     for src in docs_files:
         if src.name == "README.md":
@@ -271,18 +271,27 @@ def copy_markdown_tree(root: Path, output_dir: Path, docs_files: Iterable[Path])
         fallback = src.stem.replace("-", " ").title()
         write_markdown_page(src, dst, fallback)
 
+    for src in sorted(examples_dir.rglob("README.md")):
+        if src == examples_dir / "README.md":
+            continue
+        relative_parent = src.relative_to(examples_dir).parent
+        dst = output_dir / "examples" / relative_parent / "index.md"
+        fallback = relative_parent.name.replace("-", " ").title()
+        write_markdown_page(src, dst, fallback)
+
 
 def build_site(output_dir: Path) -> None:
     """Build the markdown source tree used by GitHub Pages."""
     root = Path(__file__).resolve().parents[1]
     docs_dir = root / "docs"
+    examples_dir = root / "examples"
 
     if output_dir.exists():
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     docs_files = sorted(docs_dir.glob("*.md"))
-    copy_markdown_tree(root, output_dir, docs_files)
+    copy_markdown_tree(root, output_dir, docs_files, examples_dir)
     write_site_config(output_dir)
     write_layout(output_dir)
     write_stylesheet(output_dir)
