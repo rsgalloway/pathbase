@@ -102,9 +102,15 @@ Expected output:
 
 ## Envstack Example
 
-The repository includes a sample [pathbase.env](/mnt/homes/rsg/dev/pathbase/pathbase.env)
-showing how template strings can be supplied from an envstack environment while
+The repository includes a generic sample [pathbase.env](/mnt/homes/rsg/dev/pathbase/pathbase.env)
+and several domain-specific env examples under
+[examples/README.md](/mnt/homes/rsg/dev/pathbase/examples/README.md), showing
+how template strings can be supplied from environment configuration while
 keeping `pathbase` itself dependency-free.
 
 For the shared-defaults plus project-overrides pattern, see
 [Overrides](overrides.md).
+
+For `distman` target selection and deployment examples, including selecting an
+example flavor while always deploying to the same `pathbase.env` destination, see
+[Distribution](distribution.md).
