@@ -1,7 +1,8 @@
 # Overrides
 
 `pathbase` does not depend on envstack, but envstack is a useful way to supply
-default template strings through environment variables.
+default template strings through environment variables. For envstack
+documentation, see [envstack.dev](https://envstack.dev).
 
 A common pattern is:
 
