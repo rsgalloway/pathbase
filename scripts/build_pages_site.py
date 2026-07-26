@@ -3,7 +3,15 @@
 # Copyright (c) 2024-2026, Ryan Galloway (ryan@rsgalloway.com)
 #
 
-"""Build a simple Jekyll-friendly docs site from repository markdown files."""
+"""Build a simple Jekyll-friendly docs site from repository markdown files.
+
+The published Pages routes map directly to repository markdown sources:
+
+- ``/`` comes from ``docs/index.md``
+- ``/docs/<name>/`` comes from ``docs/<name>.md``
+- ``/examples/`` comes from ``examples/README.md``
+- ``/examples/<flavor>/`` comes from ``examples/<flavor>/README.md``
+"""
 
 import argparse
 import re
@@ -73,7 +81,8 @@ def write_layout(output_dir: Path) -> None:
         <a class="site-brand" href="{{ '/' | relative_url }}">{{ site.title }}</a>
         <nav class="site-nav">
           <a href="{{ '/' | relative_url }}">Home</a>
-          <a href="{{ '/examples/' | relative_url }}">Examples</a>
+          <a href="{{ '/docs/api/' | relative_url }}">API</a>
+          <a href="{{ '/docs/examples/' | relative_url }}">Examples</a>
           <a href="{{ '/docs/overrides/' | relative_url }}">Overrides</a>
           <a href="https://github.com/rsgalloway/pathbase">GitHub</a>
           <a href="https://pypi.org/project/pathbase/">PyPI</a>
@@ -362,14 +371,15 @@ def copy_markdown_tree(
     root: Path, output_dir: Path, docs_files: Iterable[Path], examples_dir: Path
 ) -> None:
     """Copy repository markdown files into the generated site tree."""
-    write_markdown_page(root / "README.md", output_dir / "index.md", "pathbase")
-    write_markdown_page(root / "docs" / "README.md", output_dir / "docs" / "index.md", "Docs")
+    write_markdown_page(root / "docs" / "index.md", output_dir / "index.md", "Docs")
     write_markdown_page(
         examples_dir / "README.md", output_dir / "examples" / "index.md", "Examples"
     )
 
     for src in docs_files:
-        if src.name == "README.md":
+        if src.name == "index.md":
+            dst = output_dir / "docs" / "index.md"
+            write_markdown_page(src, dst, "Docs")
             continue
         dst = output_dir / "docs" / src.name
         fallback = src.stem.replace("-", " ").title()

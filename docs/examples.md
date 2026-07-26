@@ -1,13 +1,26 @@
 # Pathbase Examples
 
+## Example Flavors
+
+For concrete, domain-specific `pathbase.env` examples, see:
+
+- [Examples Overview](/examples/README.md)
+- [VFX](/examples/vfx/README.md)
+- [Animation](/examples/animation/README.md)
+- [Data Pipeline](/examples/data-pipeline/README.md)
+- [Logs](/examples/logs/README.md)
+- [ML Artifacts](/examples/ml-artifacts/README.md)
+- [Overrides](/examples/overrides/README.md)
+
 ## Parse a Filepath Without Knowing the Template
 
 If environment variables contain template strings, `pathbase` can discover the
 matching template automatically from a concrete filepath.
 
 ```bash
-export FILEPATH='{project}/{name}_v{version:03d}.txt'
-pathbase parse 'demo/report_v001.txt'
+export FILEPATH='${ROOT}/{project}/{name}_v{version:03d}.txt'
+export ROOT='/mnt/projects'
+pathbase parse '/mnt/projects/demo/report_v001.txt'
 ```
 
 Expected output:
@@ -32,8 +45,9 @@ The same auto-discovery model is available in Python API integrations via
 
 ## Parse a Filepath Using `ENVPATH`
 
-If you are using envstack, you can point `ENVPATH` at one of the example env
-directories and let envstack provide the template values to `pathbase`:
+If you are using [envstack](https://envstack.dev), you can point `ENVPATH` at one
+of the example env directories and let envstack provide the template values to
+`pathbase`:
 
 ```bash
 ENVPATH=./examples/vfx/ pathbase parse \
@@ -72,15 +86,16 @@ them and return the matching template name.
 Example environment:
 
 ```bash
-export FILEPATH='{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}'
-export FILEPATH_V1='{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}'
-export FILEPATH_V2='{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}'
+export FILEPATH='${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}'
+export FILEPATH_V1='${ROOT}/{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}'
+export FILEPATH_V2='${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}'
+export ROOT='/mnt/projects'
 ```
 
 Current filepath:
 
 ```bash
-pathbase parse 'bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
+pathbase parse '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
 ```
 
 Expected output:
@@ -105,7 +120,7 @@ Expected output:
 Legacy `V1` filepath:
 
 ```bash
-pathbase parse 'bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr'
+pathbase parse '/mnt/projects/bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr'
 ```
 
 This path does not require `--template FILEPATH_V1`. `pathbase` discovers that
@@ -134,12 +149,13 @@ Equivalent Python API flow:
 from pathbase import match_template
 
 env = {
-    "FILEPATH": "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
-    "FILEPATH_V1": "{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}",
-    "FILEPATH_V2": "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}",
+    "ROOT": "/mnt/projects",
+    "FILEPATH": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
+    "FILEPATH_V1": "${ROOT}/{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}",
+    "FILEPATH_V2": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}",
 }
 
-path = "bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr"
+path = "/mnt/projects/bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr"
 template_name, template = match_template(path, env=env)
 
 print(template_name)
@@ -167,7 +183,7 @@ FILEPATH_V1
 Legacy `V2` filepath:
 
 ```bash
-pathbase parse 'bigbuckbunny/seq001/shot010/lighting/render_beauty_f1001.exr'
+pathbase parse '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_f1001.exr'
 ```
 
 Expected output:
@@ -198,7 +214,7 @@ ambiguity explicitly rather than guessing.
 from pathbase import Template
 
 template = Template(
-    "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}"
+    "/mnt/projects/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}"
 )
 
 path = template.format(
@@ -219,7 +235,7 @@ print(path)
 Expected output:
 
 ```text
-bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr
+/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr
 ```
 
 ## Basic Parsing
@@ -228,11 +244,11 @@ bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr
 from pathbase import Template
 
 template = Template(
-    "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}"
+    "/mnt/projects/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}"
 )
 
 fields = template.parse(
-    "bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr"
+    "/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr"
 )
 
 print(fields)
@@ -299,16 +315,6 @@ The repository includes several domain-specific env examples under
 be supplied from environment configuration while keeping `pathbase` itself
 dependency-free.
 
-Available example flavors:
-
-- [Examples Overview](../examples/README.md)
-- [VFX](../examples/vfx/README.md)
-- [Animation](../examples/animation/README.md)
-- [Data Pipeline](../examples/data-pipeline/README.md)
-- [Logs](../examples/logs/README.md)
-- [ML Artifacts](../examples/ml-artifacts/README.md)
-- [Overrides](../examples/overrides/README.md)
-
 For the shared-defaults plus project-overrides pattern, see
 [Overrides](overrides.md).
 
@@ -323,22 +329,23 @@ The `pathbase` CLI provides a thin wrapper around the same template operations.
 Format a path from fields:
 
 ```bash
-pathbase format --template '{project}/{name}_v{version:03d}.txt' \
-  project=demo name=report version=1
+pathbase format --template '${ROOT}/{project}/{name}_v{version:03d}.txt' \
+  ROOT=/mnt/projects project=demo name=report version=1
 ```
 
 Expected output:
 
 ```text
-demo/report_v001.txt
+/mnt/projects/demo/report_v001.txt
 ```
 
 Parse a path back into fields:
 
 ```bash
-export FILEPATH='{project}/{name}_v{version:03d}.txt'
+export FILEPATH='${ROOT}/{project}/{name}_v{version:03d}.txt'
+export ROOT='/mnt/projects'
 pathbase parse \
-  'demo/report_v001.txt'
+  '/mnt/projects/demo/report_v001.txt'
 ```
 
 Expected output:
@@ -357,14 +364,15 @@ Expected output:
 Use a specific env var name when more than one template may exist:
 
 ```bash
-pathbase parse --template FILEPATH 'demo/report_v001.txt'
+pathbase parse --template FILEPATH '/mnt/projects/demo/report_v001.txt'
 ```
 
 Test whether a path matches a template:
 
 ```bash
-export FILEPATH='{project}/{name}.txt'
-pathbase match 'demo/report.txt'
+export FILEPATH='${ROOT}/{project}/{name}.txt'
+export ROOT='/mnt/projects'
+pathbase match '/mnt/projects/demo/report.txt'
 ```
 
 Expected output:

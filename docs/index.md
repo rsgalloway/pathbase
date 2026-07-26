@@ -1,17 +1,8 @@
-# pathbase
+# Pathbase Docs
 
-[![PyPI](https://img.shields.io/pypi/v/pathbase.svg?color=blue)](https://pypi.org/project/pathbase/)
-[![CI](https://github.com/rsgalloway/pathbase/actions/workflows/tests.yml/badge.svg)](https://github.com/rsgalloway/pathbase/actions/workflows/tests.yml)
-[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
-
-`pathbase` is a lightweight, dependency-free Python library for bidirectional
-filesystem path templates.
-
-## Installation
-
-```bash
-pip install -U pathbase
-```
+`pathbase` is a lightweight Python library for formatting paths, parsing paths
+back into tokens, and automatically discovering which template a real filepath
+matches.
 
 ## Quick Example
 
@@ -134,18 +125,14 @@ Parsing output:
 `pathbase` also includes a lightweight CLI:
 
 ```bash
-pathbase format --template '${ROOT}/{project}/{name}_v{version:03d}.txt' \
-  ROOT=/mnt/projects project=demo name=report version=1
+pathbase format --template '{project}/{name}_v{version:03d}.txt' \
+  project=demo name=report version=1
 
 pathbase parse \
-  '/mnt/projects/demo/report_v001.txt'
+  'demo/report_v001.txt'
 
 pathbase parse --template FILEPATH \
-  '/mnt/projects/demo/report_v001.txt'
+  'demo/report_v001.txt'
 
-pathbase match '/mnt/projects/demo/report.txt'
+pathbase match 'demo/report.txt'
 ```
-
-Additional documentation lives in [docs/index.md](docs/index.md):
-
-- [Examples](docs/examples.md)

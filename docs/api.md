@@ -19,12 +19,13 @@ get the parsed fields back.
 from pathbase import match_template
 
 env = {
-    "FILEPATH": "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
-    "FILEPATH_V1": "{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}",
-    "FILEPATH_V2": "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}",
+    "ROOT": "/mnt/projects",
+    "FILEPATH": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
+    "FILEPATH_V1": "${ROOT}/{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}",
+    "FILEPATH_V2": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}",
 }
 
-path = "bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr"
+path = "/mnt/projects/bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr"
 
 template_name, template = match_template(path, env=env)
 fields = template.parse(path)
@@ -63,12 +64,13 @@ that object, use `Template.from_path(...)`.
 from pathbase import Template, match_template
 
 env = {
-    "FILEPATH": "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
-    "FILEPATH_V1": "{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}",
-    "FILEPATH_V2": "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}",
+    "ROOT": "/mnt/projects",
+    "FILEPATH": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
+    "FILEPATH_V1": "${ROOT}/{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}",
+    "FILEPATH_V2": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}",
 }
 
-path = "bigbuckbunny/seq001/shot010/lighting/render_beauty_f1001.exr"
+path = "/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_f1001.exr"
 
 template_name, _ = match_template(path, env=env)
 template = Template.from_path(path, env=env)
@@ -85,7 +87,7 @@ FILEPATH_V2
 ```
 
 ```text
-{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}
+${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}
 ```
 
 ```python
@@ -110,7 +112,7 @@ to write.
 from pathbase import Template
 
 template = Template(
-    "{show}/{sequence}/{shot}/{step}/"
+    "${ROOT}/{show}/{sequence}/{shot}/{step}/"
     "{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}"
 )
 
@@ -124,6 +126,7 @@ path = template.format(
     version=1,
     frame=1001,
     ext="exr",
+    ROOT="/mnt/projects",
 )
 
 print(path)
@@ -132,7 +135,7 @@ print(path)
 Expected output:
 
 ```text
-bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr
+/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr
 ```
 
 ## Parse a Path
@@ -144,12 +147,12 @@ fields back.
 from pathbase import Template
 
 template = Template(
-    "{show}/{sequence}/{shot}/{step}/"
+    "${ROOT}/{show}/{sequence}/{shot}/{step}/"
     "{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}"
 )
 
 fields = template.parse(
-    "bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr"
+    "/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr"
 )
 
 print(fields)
@@ -182,9 +185,10 @@ import os
 from pathbase import Template
 
 os.environ["FILEPATH"] = (
-    "{show}/{sequence}/{shot}/{step}/"
+    "${ROOT}/{show}/{sequence}/{shot}/{step}/"
     "{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}"
 )
+os.environ["ROOT"] = "/mnt/projects"
 
 template = Template.from_env("FILEPATH")
 print(template.format(
@@ -209,18 +213,19 @@ needs to know which environment template it belongs to.
 from pathbase import match_template
 
 env = {
-    "FILEPATH": "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
-    "FILEPATH_V1": "{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}",
-    "FILEPATH_V2": "{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}",
+    "ROOT": "/mnt/projects",
+    "FILEPATH": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
+    "FILEPATH_V1": "${ROOT}/{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}",
+    "FILEPATH_V2": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}",
 }
 
 name, template = match_template(
-    "bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr",
+    "/mnt/projects/bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr",
     env=env,
 )
 
 print(name)
-print(template.parse("bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr"))
+print(template.parse("/mnt/projects/bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr"))
 ```
 
 Expected output:
@@ -250,19 +255,20 @@ first and then want to parse or inspect it.
 from pathbase import Template
 
 env = {
-    "FILEPATH": "{project}/{name}_v{version:03d}.txt",
-    "FILEPATH_V1": "{project}/{name}.{ext}",
+    "ROOT": "/mnt/projects",
+    "FILEPATH": "${ROOT}/{project}/{name}_v{version:03d}.txt",
+    "FILEPATH_V1": "${ROOT}/{project}/{name}.{ext}",
 }
 
-template = Template.from_path("demo/report_v001.txt", env=env)
+template = Template.from_path("/mnt/projects/demo/report_v001.txt", env=env)
 print(template.template)
-print(template.parse("demo/report_v001.txt"))
+print(template.parse("/mnt/projects/demo/report_v001.txt"))
 ```
 
 Expected output:
 
 ```text
-{project}/{name}_v{version:03d}.txt
+${ROOT}/{project}/{name}_v{version:03d}.txt
 ```
 
 ```python
@@ -282,11 +288,12 @@ Use `find_matching_templates(...)` when you want to detect and handle ambiguity
 from pathbase import find_matching_templates
 
 env = {
-    "FILEPATH": "{project}/{name}.txt",
-    "ALT_FILEPATH": "{project}/{artifact}.txt",
+    "ROOT": "/mnt/projects",
+    "FILEPATH": "${ROOT}/{project}/{name}.txt",
+    "ALT_FILEPATH": "${ROOT}/{project}/{artifact}.txt",
 }
 
-matches = find_matching_templates("demo/report.txt", env=env)
+matches = find_matching_templates("/mnt/projects/demo/report.txt", env=env)
 print([name for name, _template in matches])
 ```
 
@@ -306,8 +313,8 @@ from pathlib import Path
 
 from pathbase import Template
 
-template = Template("{project}/{name}.txt")
-fields = template.parse(Path("demo/report.txt"))
+template = Template("${ROOT}/{project}/{name}.txt", env={"ROOT": "/mnt/projects"})
+fields = template.parse(Path("/mnt/projects/demo/report.txt"))
 print(fields)
 ```
 
