@@ -16,87 +16,39 @@ into a focused standalone package that stays intentionally small.
 pip install -U pathbase
 ```
 
-## Status
-
-This repository now includes the first functional extraction slice:
-
-- `Template.format(...)` for path construction
-- `Template.parse(...)` for field extraction
-- typed numeric fields such as `{version:03d}` and `{value:.2f}`
-- repeated-field validation
-- mixed-separator parsing for POSIX and Windows-style paths
-- embedded `$VAR` and `${VAR}` expansion from `os.environ` or an explicit mapping
-
-Envstack-specific stack loading is intentionally not part of the core package.
-
 ## Quick Example
 
 ```python
 from pathbase import Template
 
 template = Template(
-    "/shows/{show}/shots/{sequence}/{shot}/"
-    "{shot}_{task}_v{version:03d}.{frame:04d}.exr"
+    "{show}/{sequence}/{shot}/{step}/"
+    "{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}"
 )
 
 path = template.format(
     show="bigbuckbunny",
     sequence="seq001",
-    shot="0150",
-    task="plate",
+    shot="shot010",
+    step="lighting",
+    task="render",
+    descriptor="beauty",
     version=1,
     frame=1001,
+    ext="exr",
 )
-
-print(path)
 ```
 
-Expected output:
+Pathbase supports:
 
-```text
-/shows/bigbuckbunny/shots/seq001/0150/0150_plate_v001.1001.exr
-```
+- `Template.format(...)` for path construction
+- `Template.parse(path)` for field extraction
+- typed numeric fields such as `{version:03d}` and `{value:.2f}`
+- repeated-field validation
+- mixed-separator parsing
+- embedded `$VAR` and `${VAR}` expansion from `os.environ` or an explicit mapping
+- `Template.from_env(...)` as a convenience for environment-provided templates
 
-Parsing works in the other direction:
+Additional documentation lives in [docs/README.md](docs/README.md):
 
-```python
-fields = template.parse("/shows/bigbuckbunny/shots/seq001/0150/0150_plate_v001.1001.exr")
-
-print(fields)
-```
-
-Expected output:
-
-```python
-{
-    "show": "bigbuckbunny",
-    "sequence": "seq001",
-    "shot": "0150",
-    "task": "plate",
-    "version": 1,
-    "frame": 1001,
-}
-```
-
-## Embedded Environment Variables
-
-Templates may contain embedded environment variables:
-
-```python
-from pathbase import Template
-
-template = Template("${ROOT}/{show}/{shot}.exr", env={"ROOT": "/mnt/projects"})
-path = template.format(show="bigbuckbunny", shot="0150")
-```
-
-`Template.from_env("PLATE_FILE")` is also supported and reads from `os.environ`
-by default.
-
-## Compatibility Notes
-
-The preferred API is:
-
-- `Template.format(...)`
-- `Template.parse(path)`
-- `Template.fields`
-- `Template.formats`
+- [Examples](docs/examples.md)

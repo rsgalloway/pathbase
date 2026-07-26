@@ -1,0 +1,13 @@
+{
+    "author": "ryan@rsg.io",
+    "targets": {
+        "lib": {
+            "source": "lib/pathbase",
+            "destination": "{DEPLOY_ROOT}/lib/python/pathbase"
+        },
+        "env": {
+            "source": "pathbase.env",
+            "destination": "{DEPLOY_ROOT}/env/pathbase.env"
+        }
+    }
+}
