@@ -1,16 +1,17 @@
 # Overrides
 
 `pathbase` does not depend on envstack, but envstack is a useful way to supply
-default template strings through environment variables. For envstack
+template strings through environment variables. For envstack
 documentation, see [envstack.dev](https://envstack.dev).
 
 A common pattern is:
 
-- keep a shared production `pathbase.env` with default templates
+- keep a shared production `pathbase.env` with opinionated baseline templates
 - make sure the shared env directory is present in `ENVPATH`
-- override only the templates that differ for that project
+- override only the values that differ for that project in higher-priority env files
+- avoid relying on ambient shell variables for template behavior
 
-## Shared Production Defaults
+## Shared Production Baseline
 
 A shared production template file might look like this:
 
@@ -19,26 +20,27 @@ A shared production template file might look like this:
 include: [default]
 
 all: &all
-  SHOW_ROOT: ${SHOW_ROOT:=${ROOT}/{show}}
-  SEQUENCE_ROOT: ${SEQUENCE_ROOT:=${SHOW_ROOT}/{sequence}}
-  SHOT_ROOT: ${SHOT_ROOT:=${SEQUENCE_ROOT}/{shot}}
-  STEP_ROOT: ${STEP_ROOT:=${SHOT_ROOT}/{step}}
-  FILEPATH: ${FILEPATH:=${STEP_ROOT}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}}
+  SHOW_ROOT: ${ROOT}/{show}
+  SEQUENCE_ROOT: ${SHOW_ROOT}/{sequence}
+  SHOT_ROOT: ${SEQUENCE_ROOT}/{shot}
+  STEP_ROOT: ${SHOT_ROOT}/{step}
+  FILEPATH: ${STEP_ROOT}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}
 
 linux:
   <<: *all
-  ROOT: ${ROOT:=/mnt/projects}
+  ROOT: /mnt/projects
 
 darwin:
   <<: *all
-  ROOT: ${ROOT:=/Volumes/projects}
+  ROOT: /Volumes/projects
 
 windows:
   <<: *all
-  ROOT: ${ROOT:=P:/projects}
+  ROOT: D:/projects
 ```
 
-This gives every project a stable baseline naming model.
+This gives every project a stable naming model without depending on whatever
+ambient variables happen to be present in the shell.
 
 ## Project-Specific Overrides
 
@@ -56,13 +58,13 @@ include: [default]
 
 all: &all
   SHOW: bigbuckbunny
-  SHOW_ROOT: ${SHOW_ROOT:=${ROOT}/bigbuckbunny}
+  SHOW_ROOT: ${ROOT}/bigbuckbunny
 
   # This show uses department-specific work areas under a tasks folder.
-  STEP_ROOT: ${STEP_ROOT:=${SHOT_ROOT}/tasks/{step}}
+  STEP_ROOT: ${SHOT_ROOT}/tasks/{step}
 
   # This show also includes the shot in the filename itself.
-  FILEPATH: ${FILEPATH:=${STEP_ROOT}/{shot}_{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}}
+  FILEPATH: ${STEP_ROOT}/{shot}_{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}
 
 linux:
   <<: *all
@@ -76,6 +78,8 @@ windows:
 
 That override keeps the shared vocabulary, pins the show root, changes the step
 folder layout, and changes the filename pattern for one project.
+
+Overrides should come from envstack hierarchy, not from ad hoc shell exports.
 
 ## Using the Resolved Template in Python
 
@@ -107,4 +111,4 @@ path = template.format(
 - shared defaults keep naming conventions consistent across projects
 - project overrides stay small and readable
 - `pathbase` remains dependency-free and only consumes the final template string
-- envstack remains responsible for inheritance, defaults, and platform roots
+- envstack remains responsible for inheritance, overrides, and platform roots

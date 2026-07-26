@@ -38,6 +38,7 @@ from types import MappingProxyType
 from typing import Any, Dict, List, Mapping, Match, Optional, Pattern, Set, Tuple, Type, Union
 
 from pathbase.exceptions import (
+    AmbiguousTemplateError,
     FieldFormatError,
     InvalidPathError,
     InvalidTemplateError,
@@ -77,6 +78,25 @@ def _normalize_separators(value: str) -> str:
 def _coerce_path_input(value: PathInput) -> str:
     """Convert a path-like input into a string."""
     return os.fspath(value)
+
+
+def _iter_template_items(env: Mapping[str, Any]) -> List[Tuple[str, str]]:
+    """Return environment entries that look like path templates."""
+    items = []
+    for key, value in env.items():
+        if not isinstance(value, str) or not value:
+            continue
+        if "{" not in value or "}" not in value:
+            continue
+        if "/" not in value and "\\" not in value:
+            continue
+        items.append((key, value))
+    return items
+
+
+def _template_depth(template: str) -> int:
+    """Return a rough directory-depth score for ordering templates."""
+    return _normalize_separators(template).count("/")
 
 
 def _expand_env_vars(template: str, env: Mapping[str, Any]) -> str:
@@ -182,6 +202,21 @@ class Template:
             raise MissingFieldError(f"environment variable not found: {name}") from err
         return cls(str(template), env=env_map, expand_env=expand_env)
 
+    @classmethod
+    def from_path(
+        cls,
+        path: PathInput,
+        *,
+        env: Optional[Mapping[str, Any]] = None,
+        template: Optional[str] = None,
+        expand_env: bool = True,
+    ) -> "Template":
+        """Construct a template by env var name or by matching a concrete path."""
+        if template is not None:
+            return cls.from_env(template, env=env, expand_env=expand_env)
+        _, matched = match_template(path, env=env, expand_env=expand_env)
+        return matched
+
     def _compile_pattern(self) -> Pattern[str]:
         pattern_parts = ["^"]
         seen: Set[str] = set()
@@ -277,3 +312,48 @@ class Template:
     def get_formats(self) -> Dict[str, FieldType]:
         """Compatibility helper returning a mutable copy of the format map."""
         return dict(self._formats)
+
+
+def find_matching_templates(
+    path: PathInput,
+    *,
+    env: Optional[Mapping[str, Any]] = None,
+    expand_env: bool = True,
+) -> List[Tuple[str, Template]]:
+    """Return all environment templates that match a given path."""
+    env_map = os.environ if env is None else env
+    path_str = _coerce_path_input(path)
+    matches = []
+
+    items = _iter_template_items(env_map)
+    items.sort(key=lambda item: _template_depth(item[1]), reverse=True)
+
+    for name, value in items:
+        try:
+            template = Template(value, env=env_map, expand_env=expand_env)
+        except InvalidTemplateError:
+            continue
+        if template.matches(path_str):
+            matches.append((name, template))
+
+    return matches
+
+
+def match_template(
+    path: PathInput,
+    *,
+    env: Optional[Mapping[str, Any]] = None,
+    expand_env: bool = True,
+) -> Tuple[str, Template]:
+    """Return the unique matching environment template for a path."""
+    path_str = _coerce_path_input(path)
+    matches = find_matching_templates(path_str, env=env, expand_env=expand_env)
+
+    if not matches:
+        raise InvalidPathError("no matching template found for path: {0}".format(path_str))
+
+    if len(matches) > 1:
+        names = ", ".join(name for name, _ in matches)
+        raise AmbiguousTemplateError("path matches multiple templates: {0}".format(names))
+
+    return matches[0]

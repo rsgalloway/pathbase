@@ -1,6 +1,10 @@
 {
     "author": "ryan@rsg.io",
     "targets": {
+        "bin": {
+            "source": "bin/*",
+            "destination": "{DEPLOY_ROOT}/bin/%1"
+        },
         "lib": {
             "source": "lib/pathbase",
             "destination": "{DEPLOY_ROOT}/lib/python/pathbase"

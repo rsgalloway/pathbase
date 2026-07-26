@@ -34,11 +34,14 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 import pytest
 
 from pathbase import (
+    AmbiguousTemplateError,
     FieldFormatError,
     InvalidPathError,
     InvalidTemplateError,
     MissingFieldError,
     Template,
+    find_matching_templates,
+    match_template,
 )
 
 
@@ -225,3 +228,54 @@ def test_literal_periods_and_fullmatch_behavior():
 
     assert template.parse("/cache/archive.v001.tar.gz") == {"name": "archive", "version": 1}
     assert not template.matches("/cache/archive.v001.tar.gz.extra")
+
+
+def test_find_matching_templates_from_environment():
+    env = {
+        "FILEPATH": "{project}/{name}_v{version:03d}.txt",
+        "SHOW_ROOT": "{project}",
+        "OTHER": "plain-string",
+    }
+
+    matches = find_matching_templates("demo/report_v001.txt", env=env)
+
+    assert [name for name, _ in matches] == ["FILEPATH"]
+
+
+def test_match_template_returns_unique_match():
+    env = {
+        "FILEPATH": "{project}/{name}_v{version:03d}.txt",
+    }
+
+    name, template = match_template("demo/report_v001.txt", env=env)
+
+    assert name == "FILEPATH"
+    assert template.parse("demo/report_v001.txt") == {
+        "project": "demo",
+        "name": "report",
+        "version": 1,
+    }
+
+
+def test_match_template_raises_for_ambiguity():
+    env = {
+        "FILEPATH": "{project}/{name}.txt",
+        "ALT_FILEPATH": "{project}/{artifact}.txt",
+    }
+
+    with pytest.raises(AmbiguousTemplateError):
+        match_template("demo/report.txt", env=env)
+
+
+def test_template_from_path_uses_matching_environment_template():
+    env = {
+        "FILEPATH": "{project}/{name}_v{version:03d}.txt",
+    }
+
+    template = Template.from_path("demo/report_v001.txt", env=env)
+
+    assert template.parse("demo/report_v001.txt") == {
+        "project": "demo",
+        "name": "report",
+        "version": 1,
+    }

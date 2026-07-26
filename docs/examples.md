@@ -1,5 +1,45 @@
 # Pathbase Examples
 
+## Parse a Filepath Without Knowing the Template
+
+If environment variables contain template strings, `pathbase` can discover the
+matching template automatically from a concrete filepath.
+
+```bash
+export FILEPATH='{project}/{name}_v{version:03d}.txt'
+pathbase parse 'demo/report_v001.txt'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "name": "report",
+    "project": "demo",
+    "version": 1
+  },
+  "template": "FILEPATH"
+}
+```
+
+This is useful when the caller has a real path and wants the extracted tokens
+without manually specifying the template name.
+
+## Parse a Filepath Using `ENVPATH`
+
+If you are using envstack, you can point `ENVPATH` at one of the example env
+directories and let envstack provide the template values to `pathbase`:
+
+```bash
+export ENVPATH=./examples/vfx
+pathbase parse \
+  '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
+```
+
+This keeps the template definitions outside the shell command itself while still
+letting `pathbase` discover the matching template from the environment.
+
 ## Basic Formatting
 
 ```python
@@ -114,3 +154,60 @@ For the shared-defaults plus project-overrides pattern, see
 For `distman` target selection and deployment examples, including selecting an
 example flavor while always deploying to the same `pathbase.env` destination, see
 [Distribution](distribution.md).
+
+## CLI Examples
+
+The `pathbase` CLI provides a thin wrapper around the same template operations.
+
+Format a path from fields:
+
+```bash
+pathbase format --template '{project}/{name}_v{version:03d}.txt' \
+  project=demo name=report version=1
+```
+
+Expected output:
+
+```text
+demo/report_v001.txt
+```
+
+Parse a path back into fields:
+
+```bash
+export FILEPATH='{project}/{name}_v{version:03d}.txt'
+pathbase parse \
+  'demo/report_v001.txt'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "name": "report",
+    "project": "demo",
+    "version": 1
+  },
+  "template": "FILEPATH"
+}
+```
+
+Use a specific env var name when more than one template may exist:
+
+```bash
+pathbase parse --template FILEPATH 'demo/report_v001.txt'
+```
+
+Test whether a path matches a template:
+
+```bash
+export FILEPATH='{project}/{name}.txt'
+pathbase match 'demo/report.txt'
+```
+
+Expected output:
+
+```text
+FILEPATH
+```

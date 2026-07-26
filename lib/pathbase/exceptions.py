@@ -50,3 +50,7 @@ class FieldFormatError(PathbaseError):
 
 class InvalidPathError(PathbaseError):
     """Raised when a path does not match a template."""
+
+
+class AmbiguousTemplateError(PathbaseError):
+    """Raised when more than one template matches a path."""
