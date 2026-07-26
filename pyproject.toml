@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pathbase"
+dynamic = ["version"]
+description = "Lightweight bidirectional filesystem path templates for Python."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "BSD-3-Clause" }
+authors = [
+  { name = "Ryan Galloway", email = "ryan@rsgalloway.com" },
+]
+keywords = [
+  "filesystem",
+  "path",
+  "template",
+  "parsing",
+  "formatting",
+  "pipeline",
+  "vfx",
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Utilities",
+]
+optional-dependencies = { dev = ["pytest", "flake8==7.1.1", "mccabe==0.7.0", "isort==5.13.2", "black==24.8.0"], test = ["pytest"] }
+
+[tool.setuptools]
+zip-safe = false
+
+[tool.setuptools.package-dir]
+"" = "lib"
+
+[tool.setuptools.packages.find]
+where = ["lib"]
+
+[tool.setuptools.dynamic]
+version = { attr = "pathbase.__version__" }
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_gitignore = true
+
+[tool.black]
+line-length = 100
+target-version = ["py38"]
