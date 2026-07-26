@@ -55,6 +55,65 @@ FILEPATH_V1
 This does not require the caller to preselect `FILEPATH_V1`. The path is
 matched automatically against all available templates in the environment.
 
+## Frame Tokens: Numeric vs Flexible
+
+When you use `{frame:04d}`, `pathbase` treats the field as numeric and returns
+an integer when parsing a concrete file path.
+
+```python
+from pathbase import Template
+
+template = Template(
+    "${ROOT}/{show}/{sequence}/{shot}/{step}/"
+    "{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
+    env={"ROOT": "/mnt/projects"},
+)
+
+fields = template.parse(
+    "/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr"
+)
+print(fields["frame"])
+print(type(fields["frame"]).__name__)
+```
+
+Expected output:
+
+```text
+1001
+int
+```
+
+When you use `{frame}`, `pathbase` leaves the value flexible, which is useful
+for frame-pad expressions such as `%08d`.
+
+```python
+from pathbase import Template
+
+template = Template(
+    "${ROOT}/{show}/{sequence}/{shot}/{step}/"
+    "{task}_{descriptor}_v{version:03d}.{frame}.{ext}",
+    env={"ROOT": "/mnt/projects"},
+)
+
+fields = template.parse(
+    "/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.%08d.exr"
+)
+print(fields["frame"])
+print(type(fields["frame"]).__name__)
+```
+
+Expected output:
+
+```text
+%08d
+str
+```
+
+Choose based on the paths your tools need to parse:
+
+- `{frame:04d}` for concrete frame files with numeric typing
+- `{frame}` for flexible frame tokens, including frame pads like `%04d` and `%08d`
+
 ## Build a Template From a Path and Parse It
 
 If you want a `Template` object first and then want to inspect or parse through
@@ -301,6 +360,46 @@ Expected output:
 
 ```python
 ["FILEPATH", "ALT_FILEPATH"]
+```
+
+## Advanced: Current and Legacy Template Families
+
+If your production has evolved over time, you can keep one current template and
+one or more legacy variants side by side.
+
+```python
+from pathbase import match_template
+
+env = {
+    "ROOT": "/mnt/projects",
+    "FILEPATH": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
+    "FILEPATH_V1": "${ROOT}/{show}/{sequence}/{shot}/{task}/{task}_{descriptor}.{frame:04d}.{ext}",
+    "FILEPATH_V2": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_f{frame:04d}.{ext}",
+}
+
+path = "/mnt/projects/bigbuckbunny/seq001/shot010/render/render_beauty.1001.exr"
+template_name, template = match_template(path, env=env)
+
+print(template_name)
+print(template.parse(path))
+```
+
+Expected output:
+
+```text
+FILEPATH_V1
+```
+
+```python
+{
+    "show": "bigbuckbunny",
+    "sequence": "seq001",
+    "shot": "shot010",
+    "task": "render",
+    "descriptor": "beauty",
+    "frame": 1001,
+    "ext": "exr",
+}
 ```
 
 ## Path-Like Inputs

@@ -10,7 +10,8 @@ Given a real filepath, `pathbase` can discover the matching template from
 environment-provided templates and extract the tokens:
 
 ```bash
-export FILEPATH='/mnt/projects/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}'
+export FILEPATH='${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}'
+export ROOT='/mnt/projects'
 pathbase parse '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
 ```
 
@@ -66,8 +67,10 @@ You can also work with templates directly from Python:
 from pathbase import Template
 
 template = Template(
-    "/mnt/projects/{show}/{sequence}/{shot}/{step}/"
+    "${ROOT}/{show}/{sequence}/{shot}/{step}/"
     "{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}"
+    ,
+    env={"ROOT": "/mnt/projects"},
 )
 
 path = template.format(
@@ -125,14 +128,14 @@ Parsing output:
 `pathbase` also includes a lightweight CLI:
 
 ```bash
-pathbase format --template '{project}/{name}_v{version:03d}.txt' \
-  project=demo name=report version=1
+pathbase format --template '${ROOT}/{project}/{name}_v{version:03d}.txt' \
+  ROOT=/mnt/projects project=demo name=report version=1
 
 pathbase parse \
-  'demo/report_v001.txt'
+  '/mnt/projects/demo/report_v001.txt'
 
 pathbase parse --template FILEPATH \
-  'demo/report_v001.txt'
+  '/mnt/projects/demo/report_v001.txt'
 
-pathbase match 'demo/report.txt'
+pathbase match '/mnt/projects/demo/report.txt'
 ```

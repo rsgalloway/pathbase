@@ -10,33 +10,36 @@ The root `dist.json` distributes:
 
 ## Disting an Example Flavor
 
-`distman` already supports target selection from the CLI with `-t` / `--target`,
-so the practical way to choose an example env file is to define a separate
-target for each example in `dist.json`.
+[distman](https://github.com/rsgalloway/distman) already supports target
+selection from the CLI with `-t` / `--target`, so the practical way to choose
+an example env file is to define a separate target for each example in
+`dist.json`.
 
-Examples:
+For example, to distribute the VFX `pathbase.env`:
 
 ```bash
-dist -d -t env_vfx
-dist -d -t env_animation
-dist -d -t env_data_pipeline
-dist -d -t env_logs
-dist -d -t env_ml
+dist -t env_vfx
 ```
 
-Each of those targets deploys its selected example env file to the same
-destination:
+That copies:
+
+```text
+examples/vfx/pathbase.env
+```
+
+to:
 
 ```text
 {DEPLOY_ROOT}/env/pathbase.env
 ```
 
-This means the target name selects which example file is disted, while the
-destination path stays stable for downstream tools.
+Each of those targets deploys its selected example env file to the same
+destination. This means the target name selects which example file is disted,
+while the destination path stays stable for downstream tools.
 
 ## Why Targets Work Well
 
-- no special `distman` flag is required
+- no special [distman](https://github.com/rsgalloway/distman) flag is required
 - each example stays explicit and discoverable
 - teams can choose which env file to distribute by target name
 - downstream consumers can always read the same deployed env filename

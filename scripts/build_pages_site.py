@@ -83,6 +83,7 @@ def write_layout(output_dir: Path) -> None:
           <a href="{{ '/' | relative_url }}">Home</a>
           <a href="{{ '/docs/api/' | relative_url }}">API</a>
           <a href="{{ '/docs/examples/' | relative_url }}">Examples</a>
+          <a href="{{ '/docs/distribution/' | relative_url }}">Distribution</a>
           <a href="{{ '/docs/overrides/' | relative_url }}">Overrides</a>
           <a href="https://github.com/rsgalloway/pathbase">GitHub</a>
           <a href="https://pypi.org/project/pathbase/">PyPI</a>

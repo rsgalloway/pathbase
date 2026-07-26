@@ -76,7 +76,71 @@ Expected output:
 This keeps the template definitions outside the shell command itself while still
 letting `pathbase` discover the matching template from the environment.
 
-## Parse Current and Legacy Template Variants
+## Frame Tokens: `{frame}` vs `{frame:04d}`
+
+Use `{frame:04d}` when you want `pathbase` to treat the frame as a typed,
+numeric field.
+
+```bash
+export FILEPATH='${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}'
+export ROOT='/mnt/projects'
+pathbase parse '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "descriptor": "beauty",
+    "ext": "exr",
+    "frame": 1001,
+    "sequence": "seq001",
+    "shot": "shot010",
+    "show": "bigbuckbunny",
+    "step": "lighting",
+    "task": "render",
+    "version": 1
+  },
+  "template": "FILEPATH"
+}
+```
+
+Use `{frame}` when you want the frame token to stay flexible and accept either
+a concrete frame like `1001` or a padded frame expression like `%08d`.
+
+```bash
+export FILEPATH='${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame}.{ext}'
+export ROOT='/mnt/projects'
+pathbase parse '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.%08d.exr'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "descriptor": "beauty",
+    "ext": "exr",
+    "frame": "%08d",
+    "sequence": "seq001",
+    "shot": "shot010",
+    "show": "bigbuckbunny",
+    "step": "lighting",
+    "task": "render",
+    "version": 1
+  },
+  "template": "FILEPATH"
+}
+```
+
+In practice:
+
+- `{frame:04d}` gives you typed numeric parsing for concrete frame files
+- `{frame}` is the simpler choice when you also need to parse frame pads such as
+  `%04d` or `%08d`
+
+## Advanced: Parse Current and Legacy Template Variants
 
 `pathbase parse PATH` does not require the caller to know whether a path matches
 the current template or a legacy variant. If your environment contains
