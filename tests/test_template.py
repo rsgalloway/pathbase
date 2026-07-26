@@ -29,6 +29,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from pathlib import Path, PurePosixPath, PureWindowsPath
+
 import pytest
 
 from pathbase import (
@@ -170,3 +172,56 @@ def test_compatibility_aliases_match_primary_api():
     )
     assert template.get_keywords() == ("show", "version")
     assert template.get_formats() == {"show": str, "version": int}
+
+
+def test_invalid_template_syntax_raises_invalid_template_error():
+    with pytest.raises(InvalidTemplateError):
+        Template("{foo")
+
+    with pytest.raises(InvalidTemplateError):
+        Template("foo}")
+
+
+def test_template_accepts_pathlike_inputs():
+    template = Template(PurePosixPath("/shows/{show}/v{version:03d}"))
+
+    assert template.parse(Path("/shows/bigbuckbunny/v001")) == {
+        "show": "bigbuckbunny",
+        "version": 1,
+    }
+
+
+def test_matches_accepts_pure_windows_path():
+    template = Template("D:/shows/{show}/{shot}")
+
+    assert template.matches(PureWindowsPath("D:/shows/bigbuckbunny/0150"))
+    assert template.parse(PureWindowsPath("D:/shows/bigbuckbunny/0150")) == {
+        "show": "bigbuckbunny",
+        "shot": "0150",
+    }
+
+
+def test_float_fields_roundtrip_as_floats():
+    template = Template("/metrics/{service}/value_{value:.2f}.json")
+
+    result = template.format(service="api", value=3.5)
+    parsed = template.parse("/metrics/api/value_3.50.json")
+
+    assert result == "/metrics/api/value_3.50.json"
+    assert parsed == {"service": "api", "value": 3.5}
+
+
+def test_unc_like_path_parses_with_mixed_separators():
+    template = Template("//server/share/{show}/{shot}")
+
+    assert template.parse(r"\\server\share\bigbuckbunny\0150") == {
+        "show": "bigbuckbunny",
+        "shot": "0150",
+    }
+
+
+def test_literal_periods_and_fullmatch_behavior():
+    template = Template("/cache/{name}.v{version:03d}.tar.gz")
+
+    assert template.parse("/cache/archive.v001.tar.gz") == {"name": "archive", "version": 1}
+    assert not template.matches("/cache/archive.v001.tar.gz.extra")

@@ -35,7 +35,7 @@ import os
 import re
 import string
 from types import MappingProxyType
-from typing import Any, Dict, List, Mapping, Match, Optional, Pattern, Set, Tuple, Type
+from typing import Any, Dict, List, Mapping, Match, Optional, Pattern, Set, Tuple, Type, Union
 
 from pathbase.exceptions import (
     FieldFormatError,
@@ -46,6 +46,7 @@ from pathbase.exceptions import (
 
 FieldType = Type[object]
 FormatterPart = Tuple[str, Optional[str], Optional[str], Optional[str]]
+PathInput = Union[str, os.PathLike]
 
 ENV_VAR_RE: Pattern[str] = re.compile(r"\$\{([^}]+)\}|\$(\w+)")
 SEPARATOR_RE: Pattern[str] = re.compile(r"[\\/]")
@@ -71,6 +72,11 @@ def _unescape_env_vars(template: str) -> str:
 def _normalize_separators(value: str) -> str:
     """Normalize path separators for cross-platform parsing."""
     return SEPARATOR_RE.sub("/", value)
+
+
+def _coerce_path_input(value: PathInput) -> str:
+    """Convert a path-like input into a string."""
+    return os.fspath(value)
 
 
 def _expand_env_vars(template: str, env: Mapping[str, Any]) -> str:
@@ -104,7 +110,7 @@ class Template:
 
     def __init__(
         self,
-        template: str,
+        template: PathInput,
         *,
         env: Optional[Mapping[str, Any]] = None,
         expand_env: bool = True,
@@ -112,7 +118,7 @@ class Template:
         if not template:
             raise InvalidTemplateError("template cannot be empty")
 
-        self._template: str = str(template)
+        self._template: str = _coerce_path_input(template)
         self._env: Dict[str, Any] = dict(os.environ if env is None else env)
         self._format_template: str = (
             _expand_env_vars(self._template, self._env)
@@ -121,7 +127,10 @@ class Template:
         )
         self._resolved: str = _unescape_env_vars(self._format_template)
         self._formatter = string.Formatter()
-        self._parts: Tuple[FormatterPart, ...] = tuple(self._formatter.parse(self._format_template))
+        try:
+            self._parts = tuple(self._formatter.parse(self._format_template))
+        except ValueError as err:
+            raise InvalidTemplateError(str(err)) from err
         self._fields: List[str] = []
         self._formats: Dict[str, FieldType] = {}
         self._pattern: Pattern[str] = self._compile_pattern()
@@ -241,24 +250,25 @@ class Template:
         """Compatibility alias for :meth:`format`."""
         return self.format(**fields)
 
-    def parse(self, path: str) -> Dict[str, object]:
+    def parse(self, path: PathInput) -> Dict[str, object]:
         """Parse a path string into template fields."""
-        match = self._pattern.fullmatch(_normalize_separators(str(path)))
+        path_str = _coerce_path_input(path)
+        match = self._pattern.fullmatch(_normalize_separators(path_str))
         if not match:
-            raise InvalidPathError(str(path))
+            raise InvalidPathError(path_str)
 
         parsed: Dict[str, object] = {}
         for name in self._fields:
             parsed[name] = self._coerce_field(name, match.group(name))
         return parsed
 
-    def get_fields(self, path: str) -> Dict[str, object]:
+    def get_fields(self, path: PathInput) -> Dict[str, object]:
         """Compatibility alias for :meth:`parse`."""
         return self.parse(path)
 
-    def matches(self, path: str) -> bool:
+    def matches(self, path: PathInput) -> bool:
         """Return True if the path matches this template."""
-        return self._pattern.fullmatch(_normalize_separators(str(path))) is not None
+        return self._pattern.fullmatch(_normalize_separators(_coerce_path_input(path))) is not None
 
     def get_keywords(self) -> Tuple[str, ...]:
         """Compatibility helper returning template fields."""
