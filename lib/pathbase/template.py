@@ -1,4 +1,33 @@
 #!/usr/bin/env python
+#
+# Copyright (c) 2026, Ryan Galloway (ryan@rsgalloway.com)
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#  - Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
+#
+#  - Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+#  - Neither the name of the software nor the names of its contributors
+#    may be used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
 
 """Template parsing and formatting primitives."""
 
@@ -22,6 +51,23 @@ ENV_VAR_RE: Pattern[str] = re.compile(r"\$\{([^}]+)\}|\$(\w+)")
 SEPARATOR_RE: Pattern[str] = re.compile(r"[\\/]")
 
 
+def _escape_env_vars(template: str) -> str:
+    """Escape ${VAR} placeholders so string formatting leaves them intact."""
+
+    def repl(match: Match[str]) -> str:
+        token = match.group(0)
+        if token.startswith("${"):
+            return "${{" + token[2:-1] + "}}"
+        return token
+
+    return ENV_VAR_RE.sub(repl, template)
+
+
+def _unescape_env_vars(template: str) -> str:
+    """Convert escaped ${VAR} placeholders back to their literal form."""
+    return template.replace("${{", "${").replace("}}", "}")
+
+
 def _normalize_separators(value: str) -> str:
     """Normalize path separators for cross-platform parsing."""
     return SEPARATOR_RE.sub("/", value)
@@ -32,7 +78,9 @@ def _expand_env_vars(template: str, env: Mapping[str, Any]) -> str:
 
     def repl(match: Match[str]) -> str:
         name = match.group(1) or match.group(2)
-        return str(env.get(name, match.group(0)))
+        if name in env:
+            return str(env[name])
+        return _escape_env_vars(match.group(0))
 
     return ENV_VAR_RE.sub(repl, template)
 
@@ -66,11 +114,14 @@ class Template:
 
         self._template: str = str(template)
         self._env: Dict[str, Any] = dict(os.environ if env is None else env)
-        self._resolved: str = (
-            _expand_env_vars(self._template, self._env) if expand_env else self._template
+        self._format_template: str = (
+            _expand_env_vars(self._template, self._env)
+            if expand_env
+            else _escape_env_vars(self._template)
         )
+        self._resolved: str = _unescape_env_vars(self._format_template)
         self._formatter = string.Formatter()
-        self._parts: Tuple[FormatterPart, ...] = tuple(self._formatter.parse(self._resolved))
+        self._parts: Tuple[FormatterPart, ...] = tuple(self._formatter.parse(self._format_template))
         self._fields: List[str] = []
         self._formats: Dict[str, FieldType] = {}
         self._pattern: Pattern[str] = self._compile_pattern()
@@ -180,7 +231,7 @@ class Template:
         formatted = {name: self._coerce_field(name, value) for name, value in fields.items()}
 
         try:
-            return self._resolved.format(**formatted)
+            return self._format_template.format(**formatted)
         except KeyError as err:
             raise MissingFieldError(f"missing required field: {err.args[0]}") from err
         except ValueError as err:
