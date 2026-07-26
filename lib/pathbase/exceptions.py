@@ -29,36 +29,28 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-"""Lightweight bidirectional filesystem path templates."""
+"""Custom exceptions for pathbase."""
 
-try:
-    import envstack
 
-    envstack.init("pathbase")
-except ImportError:
-    pass
+class PathbaseError(Exception):
+    """Base exception for pathbase."""
 
-from pathbase.exceptions import (
-    AmbiguousTemplateError,
-    FieldFormatError,
-    InvalidPathError,
-    InvalidTemplateError,
-    MissingFieldError,
-    PathbaseError,
-)
-from pathbase.template import Template, find_matching_templates, match_template
 
-__all__ = [
-    "AmbiguousTemplateError",
-    "FieldFormatError",
-    "InvalidPathError",
-    "InvalidTemplateError",
-    "MissingFieldError",
-    "PathbaseError",
-    "Template",
-    "find_matching_templates",
-    "match_template",
-    "__version__",
-]
+class InvalidTemplateError(PathbaseError):
+    """Raised when a template string is invalid."""
 
-__version__ = "0.1.0"
+
+class MissingFieldError(PathbaseError):
+    """Raised when required fields are missing during formatting."""
+
+
+class FieldFormatError(PathbaseError):
+    """Raised when a field value cannot be coerced to its declared type."""
+
+
+class InvalidPathError(PathbaseError):
+    """Raised when a path does not match a template."""
+
+
+class AmbiguousTemplateError(PathbaseError):
+    """Raised when more than one template matches a path."""

@@ -1,0 +1,37 @@
+{
+    "author": "ryan@rsg.io",
+    "targets": {
+        "bin": {
+            "source": "bin/*",
+            "destination": "{DEPLOY_ROOT}/bin/%1"
+        },
+        "lib": {
+            "source": "lib/pathbase",
+            "destination": "{DEPLOY_ROOT}/lib/python/pathbase"
+        },
+        "env": {
+            "source": "pathbase.env",
+            "destination": "{DEPLOY_ROOT}/env/pathbase.env"
+        },
+        "env_vfx": {
+            "source": "examples/vfx/pathbase.env",
+            "destination": "{DEPLOY_ROOT}/env/pathbase.env"
+        },
+        "env_animation": {
+            "source": "examples/animation/pathbase.env",
+            "destination": "{DEPLOY_ROOT}/env/pathbase.env"
+        },
+        "env_data_pipeline": {
+            "source": "examples/data-pipeline/pathbase.env",
+            "destination": "{DEPLOY_ROOT}/env/pathbase.env"
+        },
+        "env_logs": {
+            "source": "examples/logs/pathbase.env",
+            "destination": "{DEPLOY_ROOT}/env/pathbase.env"
+        },
+        "env_ml": {
+            "source": "examples/ml-artifacts/pathbase.env",
+            "destination": "{DEPLOY_ROOT}/env/pathbase.env"
+        }
+    }
+}
