@@ -54,3 +54,7 @@ class InvalidPathError(PathbaseError):
 
 class AmbiguousTemplateError(PathbaseError):
     """Raised when more than one template matches a path."""
+
+
+class PlatformResolutionError(PathbaseError):
+    """Raised when a platform-specific template cannot be resolved."""

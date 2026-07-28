@@ -45,6 +45,7 @@ from pathbase.exceptions import (
     InvalidTemplateError,
     MissingFieldError,
     PathbaseError,
+    PlatformResolutionError,
 )
 from pathbase.template import Template, find_matching_templates, match_template
 
@@ -55,6 +56,7 @@ __all__ = [
     "InvalidTemplateError",
     "MissingFieldError",
     "PathbaseError",
+    "PlatformResolutionError",
     "Template",
     "find_matching_templates",
     "match_template",

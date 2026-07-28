@@ -39,10 +39,12 @@ from pathbase import (
     InvalidPathError,
     InvalidTemplateError,
     MissingFieldError,
+    PlatformResolutionError,
     Template,
     find_matching_templates,
     match_template,
 )
+import pathbase.template as template_module
 
 
 def test_format_returns_string():
@@ -148,6 +150,7 @@ def test_from_env_reads_os_environ(monkeypatch):
     template = Template.from_env("PLATE_FILE")
 
     assert template.format(shot="0150") == "/mnt/show/0150.exr"
+    assert template.name == "PLATE_FILE"
 
 
 def test_unresolved_braced_env_var_remains_literal():
@@ -279,3 +282,86 @@ def test_template_from_path_uses_matching_environment_template():
         "name": "report",
         "version": 1,
     }
+    assert template.name == "FILEPATH"
+
+
+def test_to_platform_uses_target_template_from_explicit_env():
+    source_env = {
+        "ROOT": "/mnt/projects",
+        "FILEPATH": "${ROOT}/{project}/{name}_v{version:03d}.txt",
+    }
+    target_env = {
+        "ROOT": "D:/projects",
+        "FILEPATH": "${ROOT}/{project}/publish/{name}_v{version:03d}.txt",
+    }
+
+    template = Template.from_env("FILEPATH", env=source_env)
+
+    result = template.to_platform(
+        "/mnt/projects/demo/report_v001.txt",
+        "windows",
+        target_env=target_env,
+    )
+
+    assert result == "D:/projects/demo/publish/report_v001.txt"
+
+
+def test_to_platform_falls_back_to_template_string_when_name_is_unknown():
+    template = Template(
+        "${ROOT}/{project}/{name}_v{version:03d}.txt", env={"ROOT": "/mnt/projects"}
+    )
+
+    result = template.to_platform(
+        "/mnt/projects/demo/report_v001.txt",
+        "windows",
+        target_env={"ROOT": "D:/projects"},
+    )
+
+    assert result == "D:/projects/demo/report_v001.txt"
+
+
+def test_to_platform_loads_target_platform_env_via_envstack(monkeypatch):
+    source_env = {
+        "ROOT": "/mnt/projects",
+        "FILEPATH": "${ROOT}/{project}/{name}_v{version:03d}.txt",
+    }
+    template = Template.from_env("FILEPATH", env=source_env)
+
+    calls = []
+
+    def fake_load(platform, *, stack, scope):
+        calls.append((platform, stack, scope))
+        return {
+            "ROOT": "D:/projects",
+            "FILEPATH": "${ROOT}/{project}/{name}_v{version:03d}.txt",
+        }
+
+    monkeypatch.setattr(template_module, "_load_platform_environment", fake_load)
+
+    result = template.to_platform(
+        "/mnt/projects/demo/report_v001.txt",
+        "windows",
+        stack="render",
+        scope="/mnt/projects/demo/env",
+    )
+
+    assert result == "D:/projects/demo/report_v001.txt"
+    assert calls == [("windows", "render", "/mnt/projects/demo/env")]
+
+
+def test_to_platform_raises_clear_error_without_envstack(monkeypatch):
+    source_env = {
+        "ROOT": "/mnt/projects",
+        "FILEPATH": "${ROOT}/{project}/{name}_v{version:03d}.txt",
+    }
+    template = Template.from_env("FILEPATH", env=source_env)
+
+    def fake_load(platform, *, stack, scope):
+        raise PlatformResolutionError(
+            "envstack is required for platform-specific template resolution"
+        )
+
+    monkeypatch.setattr(template_module, "_load_platform_environment", fake_load)
+
+    with pytest.raises(PlatformResolutionError):
+        template.to_platform("/mnt/projects/demo/report_v001.txt", "windows")

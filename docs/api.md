@@ -66,6 +66,48 @@ Expected output:
 /mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v002.1001.exr
 ```
 
+If you need the equivalent path for another platform and `envstack` is
+installed, you can parse the source path once and ask `pathbase` to resolve the
+target-platform template from the named envstack stack:
+
+```python
+from pathbase import Template
+
+path = "/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr"
+template = Template.from_path(path)
+
+windows_path = template.to_platform(path, "windows")
+
+print(windows_path)
+```
+
+Expected output, assuming the `windows` platform resolves `ROOT=D:/projects`:
+
+```text
+D:/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr
+```
+
+If `envstack` is not installed, you can still do the same conversion by passing
+an explicit target environment mapping:
+
+```python
+from pathbase import Template
+
+path = "/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr"
+template = Template.from_path(path)
+
+windows_path = template.to_platform(
+    path,
+    "windows",
+    target_env={
+        "ROOT": "D:/projects",
+        "FILEPATH": "${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
+    },
+)
+
+print(windows_path)
+```
+
 If you also want the matched environment variable name, use
 `match_template(...)`:
 
@@ -108,6 +150,24 @@ FILEPATH_V1
 
 This does not require the caller to preselect `FILEPATH_V1`. The path is
 matched automatically against all available templates in the environment.
+
+## Discovery Scope
+
+`pathbase` matches against the resolved runtime environment, not only against a
+`pathbase.env` file. That means templates can live in tool-local env files such
+as `mytool.env`, `render.env`, or any other envstack-managed source, as long as
+those variables are present in the environment seen by the Python process.
+
+Auto-discovery is intentionally conservative:
+
+- only string values that look like path templates are considered
+- malformed candidate templates are skipped during discovery
+- path separators are normalized during matching, so `/` and `\` do not break
+  cross-platform parsing
+
+If your process loads many template-like env vars and discovery becomes
+ambiguous, pass a narrower `env=` mapping, use `Template.from_env(...)`, or
+specify the template name explicitly.
 
 ## Frame Tokens: Numeric vs Flexible
 
