@@ -10,34 +10,6 @@ Given a real filepath, `pathbase` can discover the matching template from
 environment-provided templates and extract the tokens:
 
 ```bash
-export FILEPATH='${ROOT}/{show}/{sequence}/{shot}/{step}/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}'
-export ROOT='/mnt/projects'
-pathbase parse '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
-```
-
-Expected output:
-
-```json
-{
-  "fields": {
-    "descriptor": "beauty",
-    "ext": "exr",
-    "frame": 1001,
-    "sequence": "seq001",
-    "shot": "shot010",
-    "show": "bigbuckbunny",
-    "step": "lighting",
-    "task": "render",
-    "version": 1
-  },
-  "template": "FILEPATH"
-}
-```
-
-The same flow also works well with [envstack-managed templates](https://envstack.dev).
-For example:
-
-```bash
 ENVPATH=./examples/vfx/ pathbase parse \
   '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
 ```
@@ -60,6 +32,37 @@ Expected output:
   "template": "FILEPATH"
 }
 ```
+
+With [envstack-managed templates](https://envstack.dev), you can also emit the
+equivalent path for another platform:
+
+```bash
+ENVPATH=./examples/vfx/ pathbase parse --platform windows \
+  '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "descriptor": "beauty",
+    "ext": "exr",
+    "frame": 1001,
+    "sequence": "seq001",
+    "shot": "shot010",
+    "show": "bigbuckbunny",
+    "step": "lighting",
+    "task": "render",
+    "version": 1
+  },
+  "platform_path": "D:/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr",
+  "template": "FILEPATH"
+}
+```
+
+If `envstack` is not installed, `pathbase` still supports direct environment
+variables and explicit mappings from Python.
 
 You can also work with templates directly from Python:
 
@@ -130,6 +133,12 @@ Parsing output:
 ```bash
 pathbase format --template '${ROOT}/{project}/{name}_v{version:03d}.txt' \
   ROOT=/mnt/projects project=demo name=report version=1
+
+ENVPATH=./examples/vfx/ pathbase parse \
+  '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
+
+ENVPATH=./examples/vfx/ pathbase parse --platform windows \
+  '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
 
 pathbase parse \
   '/mnt/projects/demo/report_v001.txt'

@@ -1,8 +1,9 @@
 # Overrides
 
-`pathbase` does not depend on envstack, but envstack is a useful way to supply
-template strings through environment variables. For envstack
-documentation, see [envstack.dev](https://envstack.dev).
+`pathbase` works especially well with envstack-managed environments, where
+template strings, overrides, and platform-specific roots can be layered
+through `ENVPATH`. For envstack documentation, see
+[envstack.dev](https://envstack.dev).
 
 A common pattern is:
 
@@ -10,6 +11,10 @@ A common pattern is:
 - make sure the shared env directory is present in `ENVPATH`
 - override only the values that differ for that project in higher-priority env files
 - avoid relying on ambient shell variables for template behavior
+
+If envstack is not installed, `pathbase` can still consume direct environment
+variables or explicit `env=` mappings from Python, but the examples in this
+guide assume envstack is the primary workflow.
 
 ## Shared Production Baseline
 

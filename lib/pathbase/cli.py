@@ -83,6 +83,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--template",
         help="environment variable name containing the template to use",
     )
+    p_parse.add_argument(
+        "--platform",
+        help="target platform for emitting a converted path",
+    )
     p_parse.add_argument("path", help="path to parse")
 
     p_match = subparsers.add_parser("match", help="find or test a matching template")
@@ -119,6 +123,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                 "template": template_name,
                 "fields": template.parse(args.path),
             }
+            if args.platform:
+                result["platform_path"] = template.to_platform(
+                    args.path,
+                    args.platform,
+                    template=template_name,
+                )
             print(json.dumps(result, indent=2, sort_keys=True))
             return 0
 
