@@ -33,6 +33,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
 
+import pathbase.template as template_module
 from pathbase import (
     AmbiguousTemplateError,
     FieldFormatError,
@@ -44,7 +45,6 @@ from pathbase import (
     find_matching_templates,
     match_template,
 )
-import pathbase.template as template_module
 
 
 def test_format_returns_string():

@@ -31,8 +31,8 @@
 
 import json
 
-from pathbase.cli import main
 import pathbase.template as template_module
+from pathbase.cli import main
 
 
 def test_cli_format(capsys):
