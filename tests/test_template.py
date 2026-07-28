@@ -349,6 +349,30 @@ def test_to_platform_loads_target_platform_env_via_envstack(monkeypatch):
     assert calls == [("windows", "render", "/mnt/projects/demo/env")]
 
 
+def test_to_platform_normalizes_scope_for_windows_source_path(monkeypatch):
+    source_env = {
+        "ROOT": "D:/projects",
+        "FILEPATH": "${ROOT}/{project}/{name}_v{version:03d}.txt",
+    }
+    template = Template.from_env("FILEPATH", env=source_env)
+
+    calls = []
+
+    def fake_load(platform, *, stack, scope):
+        calls.append((platform, stack, scope))
+        return {
+            "ROOT": "/mnt/projects",
+            "FILEPATH": "${ROOT}/{project}/{name}_v{version:03d}.txt",
+        }
+
+    monkeypatch.setattr(template_module, "_load_platform_environment", fake_load)
+
+    result = template.to_platform(r"D:\projects\demo\report_v001.txt", "linux")
+
+    assert result == "/mnt/projects/demo/report_v001.txt"
+    assert calls == [("linux", "pathbase", "D:/projects/demo")]
+
+
 def test_to_platform_raises_clear_error_without_envstack(monkeypatch):
     source_env = {
         "ROOT": "/mnt/projects",

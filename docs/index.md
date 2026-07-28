@@ -9,6 +9,9 @@ matches.
 Given a real filepath, `pathbase` can discover the matching template from
 environment-provided templates and extract the tokens:
 
+This example assumes [envstack](https://envstack.dev) is installed so
+`ENVPATH` is resolved before `pathbase` runs.
+
 ```bash
 ENVPATH=./examples/vfx/ pathbase parse \
   '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'

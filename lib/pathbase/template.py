@@ -83,7 +83,7 @@ def _coerce_path_input(value: PathInput) -> str:
 
 def _default_scope(path: PathInput) -> str:
     """Derive a default envstack scope from a concrete path."""
-    return os.path.dirname(_coerce_path_input(path))
+    return os.path.dirname(_normalize_separators(_coerce_path_input(path)))
 
 
 def _iter_template_items(env: Mapping[str, Any]) -> List[Tuple[str, str]]:
