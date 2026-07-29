@@ -14,8 +14,43 @@ For concrete, domain-specific `pathbase.env` examples, see:
 
 ## Parse a Filepath Without Knowing the Template
 
-If environment variables contain template strings, `pathbase` can discover the
-matching template automatically from a concrete filepath.
+With [envstack](https://envstack.dev), `pathbase` can discover the matching
+template automatically from a concrete filepath without the caller needing to
+know the template name.
+
+```bash
+ENVPATH=./examples/vfx/ pathbase parse \
+  '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "descriptor": "beauty",
+    "ext": "exr",
+    "frame": 1001,
+    "sequence": "seq001",
+    "shot": "shot010",
+    "show": "bigbuckbunny",
+    "step": "lighting",
+    "task": "render",
+    "version": 1
+  },
+  "template": "FILEPATH"
+}
+```
+
+This is useful when the caller has a real path and wants the extracted tokens
+without manually specifying the template name.
+
+The same auto-discovery model is available in Python API integrations via
+`match_template(path, env=...)` and `Template.from_path(path, env=...)`. See
+[API](api.md) for examples.
+
+If `envstack` is not installed, `pathbase` can still discover templates from
+plain environment variables:
 
 ```bash
 export FILEPATH='${ROOT}/{project}/{name}_v{version:03d}.txt'
@@ -35,13 +70,6 @@ Expected output:
   "template": "FILEPATH"
 }
 ```
-
-This is useful when the caller has a real path and wants the extracted tokens
-without manually specifying the template name.
-
-The same auto-discovery model is available in Python API integrations via
-`match_template(path, env=...)` and `Template.from_path(path, env=...)`. See
-[API](api.md) for examples.
 
 ## Parse a Filepath Using `ENVPATH`
 
@@ -75,6 +103,36 @@ Expected output:
 
 This keeps the template definitions outside the shell command itself while still
 letting `pathbase` discover the matching template from the environment.
+
+## Parse and Convert to Another Platform
+
+When `envstack` provides platform-specific template values, the CLI can also
+emit the equivalent path for another platform:
+
+```bash
+ENVPATH=./examples/vfx/ pathbase parse --platform windows \
+  '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'
+```
+
+Expected output:
+
+```json
+{
+  "fields": {
+    "descriptor": "beauty",
+    "ext": "exr",
+    "frame": 1001,
+    "sequence": "seq001",
+    "shot": "shot010",
+    "show": "bigbuckbunny",
+    "step": "lighting",
+    "task": "render",
+    "version": 1
+  },
+  "platform_path": "D:/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr",
+  "template": "FILEPATH"
+}
+```
 
 ## Frame Tokens: `{frame}` vs `{frame:04d}`
 

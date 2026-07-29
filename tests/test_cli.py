@@ -31,6 +31,7 @@
 
 import json
 
+import pathbase.template as template_module
 from pathbase.cli import main
 
 
@@ -89,6 +90,39 @@ def test_cli_parse_with_explicit_template_name(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert result == 0
     assert json.loads(captured.out)["template"] == "FILEPATH"
+
+
+def test_cli_parse_with_platform(monkeypatch, capsys):
+    monkeypatch.setenv(
+        "FILEPATH",
+        "${ROOT}/{project}/{name}_v{version:03d}.txt",
+    )
+    monkeypatch.setenv("ROOT", "/mnt/projects")
+
+    def fake_load(platform, *, stack, scope):
+        assert platform == "windows"
+        assert stack == "pathbase"
+        assert scope == "/mnt/projects/demo"
+        return {
+            "ROOT": "D:/projects",
+            "FILEPATH": "${ROOT}/{project}/{name}_v{version:03d}.txt",
+        }
+
+    monkeypatch.setattr(template_module, "_load_platform_environment", fake_load)
+
+    result = main(["parse", "--platform", "windows", "/mnt/projects/demo/report_v001.txt"])
+
+    captured = capsys.readouterr()
+    assert result == 0
+    assert json.loads(captured.out) == {
+        "fields": {
+            "name": "report",
+            "project": "demo",
+            "version": 1,
+        },
+        "platform_path": "D:/projects/demo/report_v001.txt",
+        "template": "FILEPATH",
+    }
 
 
 def test_cli_match_success_and_failure(monkeypatch, capsys):

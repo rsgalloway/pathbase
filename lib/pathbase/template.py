@@ -43,6 +43,7 @@ from pathbase.exceptions import (
     InvalidPathError,
     InvalidTemplateError,
     MissingFieldError,
+    PlatformResolutionError,
 )
 
 FieldType = Type[object]
@@ -80,6 +81,11 @@ def _coerce_path_input(value: PathInput) -> str:
     return os.fspath(value)
 
 
+def _default_scope(path: PathInput) -> str:
+    """Derive a default envstack scope from a concrete path."""
+    return os.path.dirname(_normalize_separators(_coerce_path_input(path)))
+
+
 def _iter_template_items(env: Mapping[str, Any]) -> List[Tuple[str, str]]:
     """Return environment entries that look like path templates."""
     items = []
@@ -111,6 +117,31 @@ def _expand_env_vars(template: str, env: Mapping[str, Any]) -> str:
     return ENV_VAR_RE.sub(repl, template)
 
 
+def _load_platform_environment(
+    platform: str,
+    *,
+    stack: str,
+    scope: Optional[str] = None,
+) -> Mapping[str, Any]:
+    """Load a resolved envstack environment for a target platform."""
+    try:
+        from envstack.env import load_environ, resolve_environ
+    except ImportError as err:
+        raise PlatformResolutionError(
+            "envstack is required for platform-specific template resolution"
+        ) from err
+
+    try:
+        raw = load_environ(stack, platform=platform, scope=scope)
+        return resolve_environ(raw)
+    except Exception as err:
+        raise PlatformResolutionError(
+            "failed to resolve envstack stack {0!r} for platform {1!r}: {2}".format(
+                stack, platform, err
+            )
+        ) from err
+
+
 def _infer_type(format_spec: Optional[str]) -> FieldType:
     """Infer the field type from a simple Python format spec."""
     if not format_spec:
@@ -134,11 +165,13 @@ class Template:
         *,
         env: Optional[Mapping[str, Any]] = None,
         expand_env: bool = True,
+        name: Optional[str] = None,
     ) -> None:
         if not template:
             raise InvalidTemplateError("template cannot be empty")
 
         self._template: str = _coerce_path_input(template)
+        self._name = name
         self._env: Dict[str, Any] = dict(os.environ if env is None else env)
         self._format_template: str = (
             _expand_env_vars(self._template, self._env)
@@ -165,6 +198,11 @@ class Template:
     def template(self) -> str:
         """Return the original template string."""
         return self._template
+
+    @property
+    def name(self) -> Optional[str]:
+        """Return the environment variable name associated with this template."""
+        return self._name
 
     @property
     def resolved_template(self) -> str:
@@ -200,7 +238,7 @@ class Template:
             template = env_map[name]
         except KeyError as err:
             raise MissingFieldError(f"environment variable not found: {name}") from err
-        return cls(str(template), env=env_map, expand_env=expand_env)
+        return cls(str(template), env=env_map, expand_env=expand_env, name=name)
 
     @classmethod
     def from_path(
@@ -305,6 +343,44 @@ class Template:
         """Return True if the path matches this template."""
         return self._pattern.fullmatch(_normalize_separators(_coerce_path_input(path))) is not None
 
+    def to_platform(
+        self,
+        path: PathInput,
+        platform: str,
+        *,
+        stack: str = "pathbase",
+        scope: Optional[str] = None,
+        target_env: Optional[Mapping[str, Any]] = None,
+        template: Optional[str] = None,
+        expand_env: bool = True,
+    ) -> str:
+        """Convert a concrete path to a target platform using this template."""
+        fields = self.parse(path)
+        template_name = template or self._name
+
+        if target_env is None:
+            target_env = _load_platform_environment(
+                platform,
+                stack=stack,
+                scope=scope or _default_scope(path),
+            )
+
+        if template_name and template_name in target_env:
+            target_template = Template.from_env(
+                template_name,
+                env=target_env,
+                expand_env=expand_env,
+            )
+        else:
+            target_template = Template(
+                self._template,
+                env=target_env,
+                expand_env=expand_env,
+                name=template_name,
+            )
+
+        return target_template.format(**fields)
+
     def get_keywords(self) -> Tuple[str, ...]:
         """Compatibility helper returning template fields."""
         return self.fields
@@ -330,7 +406,7 @@ def find_matching_templates(
 
     for name, value in items:
         try:
-            template = Template(value, env=env_map, expand_env=expand_env)
+            template = Template(value, env=env_map, expand_env=expand_env, name=name)
         except InvalidTemplateError:
             continue
         if template.matches(path_str):
