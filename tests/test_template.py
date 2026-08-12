@@ -247,7 +247,7 @@ def test_find_matching_templates_from_environment():
 
 def test_find_matching_templates_ignores_shell_env_values():
     env = {
-        "FILEPATH": "/mnt/x/{show}/shots/{sequence}/{shot}/{name}.mp4",
+        "FILEPATH": "/mnt/projects/{project}/shots/{sequence}/{shot}/{name}.mp4",
         "BASH_FUNC_module%%": (
             " () {  typeset swfound=1;\n"
             " if [ \"${MODULES_USE_COMPAT_VERSION:-0}\" = '1' ]; then\n"
@@ -269,7 +269,7 @@ def test_find_matching_templates_ignores_shell_env_values():
     }
 
     matches = find_matching_templates(
-        "/mnt/x/rhps/shots/00cr/00cr_0010/00cr_0010_plate.mp4",
+        "/mnt/projects/demo/shots/seq001/shot010/shot010_plate.mp4",
         env=env,
     )
 
