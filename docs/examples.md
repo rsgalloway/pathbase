@@ -451,8 +451,8 @@ The `pathbase` CLI provides a thin wrapper around the same template operations.
 Format a path from fields:
 
 ```bash
-pathbase format --template '${ROOT}/{project}/{name}_v{version:03d}.txt' \
-  ROOT=/mnt/projects project=demo name=report version=1
+ROOT=/mnt/projects pathbase format --template '${ROOT}/{project}/{name}_v{version:03d}.txt' \
+  project=demo name=report version=1
 ```
 
 Expected output:
