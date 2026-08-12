@@ -88,6 +88,7 @@ def _default_scope(path: PathInput) -> str:
 
 def _iter_template_items(env: Mapping[str, Any]) -> List[Tuple[str, str]]:
     """Return environment entries that look like path templates."""
+    formatter = string.Formatter()
     items = []
     for key, value in env.items():
         if not isinstance(value, str) or not value:
@@ -95,6 +96,12 @@ def _iter_template_items(env: Mapping[str, Any]) -> List[Tuple[str, str]]:
         if "{" not in value or "}" not in value:
             continue
         if "/" not in value and "\\" not in value:
+            continue
+        try:
+            parts = tuple(formatter.parse(_escape_env_vars(value)))
+        except ValueError:
+            continue
+        if not any(field_name is not None for _, field_name, _, _ in parts):
             continue
         items.append((key, value))
     return items
@@ -186,7 +193,10 @@ class Template:
             raise InvalidTemplateError(str(err)) from err
         self._fields: List[str] = []
         self._formats: Dict[str, FieldType] = {}
-        self._pattern: Pattern[str] = self._compile_pattern()
+        try:
+            self._pattern = self._compile_pattern()
+        except re.error as err:
+            raise InvalidTemplateError(str(err)) from err
 
     def __repr__(self) -> str:
         return f"Template({self._template!r})"

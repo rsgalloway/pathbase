@@ -134,8 +134,8 @@ Parsing output:
 `pathbase` also includes a lightweight CLI:
 
 ```bash
-pathbase format --template '${ROOT}/{project}/{name}_v{version:03d}.txt' \
-  ROOT=/mnt/projects project=demo name=report version=1
+ROOT=/mnt/projects pathbase format --template '${ROOT}/{project}/{name}_v{version:03d}.txt' \
+  project=demo name=report version=1
 
 ENVPATH=./examples/vfx/ pathbase parse \
   '/mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr'

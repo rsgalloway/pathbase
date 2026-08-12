@@ -245,6 +245,37 @@ def test_find_matching_templates_from_environment():
     assert [name for name, _ in matches] == ["FILEPATH"]
 
 
+def test_find_matching_templates_ignores_shell_env_values():
+    env = {
+        "FILEPATH": "/mnt/projects/{project}/shots/{sequence}/{shot}/{name}.mp4",
+        "BASH_FUNC_module%%": (
+            " () {  typeset swfound=1;\n"
+            " if [ \"${MODULES_USE_COMPAT_VERSION:-0}\" = '1' ]; then\n"
+            " typeset swname='main';\n"
+            " if [ -e /usr/share/Modules/libexec/modulecmd.tcl ]; then\n"
+            " typeset swfound=0;\n"
+            " unset MODULES_USE_COMPAT_VERSION;\n"
+            " fi;\n"
+            " else\n"
+            " typeset swname='compatibility';\n"
+            " if [ -e /usr/share/Modules/libexec/modulecmd-compat ]; then\n"
+            " typeset swfound=0;\n"
+            " MODULES_USE_COMPAT_VERSION=1;\n"
+            " export MODULES_USE_COMPAT_VERSION;\n"
+            " fi;\n"
+            " fi\n"
+            "}"
+        ),
+    }
+
+    matches = find_matching_templates(
+        "/mnt/projects/demo/shots/seq001/shot010/shot010_plate.mp4",
+        env=env,
+    )
+
+    assert [name for name, _ in matches] == ["FILEPATH"]
+
+
 def test_match_template_returns_unique_match():
     env = {
         "FILEPATH": "{project}/{name}_v{version:03d}.txt",
