@@ -1,3 +1,9 @@
+---
+layout: default
+title: Pathbase API
+description: Python API patterns for formatting, parsing, and matching templates.
+---
+
 # Pathbase API
 
 This guide focuses on the Python API surface that is most useful when

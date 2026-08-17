@@ -161,4 +161,4 @@ pathbase match '/mnt/projects/demo/report.txt'
 
 Additional documentation lives in [docs/index.md](docs/index.md):
 
-- [Examples](docs/examples.md)
+- [Examples](docs/examples/index.md)

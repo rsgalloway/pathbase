@@ -1,3 +1,9 @@
+---
+layout: default
+title: Distribution
+description: How pathbase example environments are distributed with distman.
+---
+
 # Distribution
 
 `pathbase` includes a `dist.json` file for use with

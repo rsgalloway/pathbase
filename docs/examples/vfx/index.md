@@ -1,3 +1,9 @@
+---
+layout: default
+title: VFX Example
+description: Example visual effects path templates for pathbase.
+---
+
 # VFX Example
 
 This example models a common visual effects layout with show, sequence, shot,
@@ -13,6 +19,13 @@ Example filepath:
 
 ```text
 /mnt/projects/bigbuckbunny/seq001/shot010/lighting/render_beauty_v001.1001.exr
+```
+
+Example env file:
+[examples/vfx/pathbase.env](https://github.com/rsgalloway/pathbase/blob/master/examples/vfx/pathbase.env)
+
+```bash
+curl -L https://raw.githubusercontent.com/rsgalloway/pathbase/master/examples/vfx/pathbase.env -o pathbase.env
 ```
 
 Try it:

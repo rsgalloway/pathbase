@@ -1,3 +1,9 @@
+---
+layout: default
+title: ML Artifacts Example
+description: Example experiment artifact templates for pathbase.
+---
+
 # ML Artifacts Example
 
 This example stores experiment outputs under project, experiment, run, and
@@ -13,6 +19,13 @@ Example filepath:
 
 ```text
 /mnt/ml/pathbase/baseline/run-001/metrics.json
+```
+
+Example env file:
+[examples/ml-artifacts/pathbase.env](https://github.com/rsgalloway/pathbase/blob/master/examples/ml-artifacts/pathbase.env)
+
+```bash
+curl -L https://raw.githubusercontent.com/rsgalloway/pathbase/master/examples/ml-artifacts/pathbase.env -o pathbase.env
 ```
 
 Try it:

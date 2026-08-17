@@ -1,3 +1,9 @@
+---
+layout: default
+title: Overrides
+description: Patterns for layering shared and project-specific pathbase templates.
+---
+
 # Overrides
 
 `pathbase` works especially well with envstack-managed environments, where

@@ -20,3 +20,4 @@ out.env
 .codex
 .agents/
 _site*
+.mkpages/
