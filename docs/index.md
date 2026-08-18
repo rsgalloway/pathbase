@@ -1,3 +1,9 @@
+---
+layout: default
+title: Pathbase Docs
+description: Overview and quick-start examples for pathbase path templates.
+---
+
 # Pathbase Docs
 
 `pathbase` is a lightweight Python library for formatting paths, parsing paths

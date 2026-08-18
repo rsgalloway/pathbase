@@ -1,10 +1,25 @@
+---
+layout: default
+title: Overrides Example
+description: Example shared and project-specific override templates for pathbase.
+---
+
 # Overrides Example
 
 This folder demonstrates a shared `pathbase.env` plus a higher-priority
 project-specific override.
 
-- [Shared](shared/pathbase.env)
-- [Big Buck Bunny Override](bigbuckbunny/pathbase.env)
+- Shared env file: `examples/overrides/shared/pathbase.env`
+- Big Buck Bunny override: `examples/overrides/bigbuckbunny/pathbase.env`
+
+GitHub source:
+- [examples/overrides/shared/pathbase.env](https://github.com/rsgalloway/pathbase/blob/master/examples/overrides/shared/pathbase.env)
+- [examples/overrides/bigbuckbunny/pathbase.env](https://github.com/rsgalloway/pathbase/blob/master/examples/overrides/bigbuckbunny/pathbase.env)
+
+```bash
+curl -L https://raw.githubusercontent.com/rsgalloway/pathbase/master/examples/overrides/shared/pathbase.env -o shared.pathbase.env
+curl -L https://raw.githubusercontent.com/rsgalloway/pathbase/master/examples/overrides/bigbuckbunny/pathbase.env -o bigbuckbunny.pathbase.env
+```
 
 Shared template example:
 

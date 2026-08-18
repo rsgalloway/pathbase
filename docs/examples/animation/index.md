@@ -1,3 +1,9 @@
+---
+layout: default
+title: Animation Example
+description: Example animation asset and publish templates for pathbase.
+---
+
 # Animation Example
 
 This example uses asset, department, and version-style naming common in
@@ -13,6 +19,13 @@ Example filepath:
 
 ```text
 /mnt/projects/bigbuckbunny/assets/bunny/model/bunny_publish_v003.usd
+```
+
+Example env file:
+[examples/animation/pathbase.env](https://github.com/rsgalloway/pathbase/blob/master/examples/animation/pathbase.env)
+
+```bash
+curl -L https://raw.githubusercontent.com/rsgalloway/pathbase/master/examples/animation/pathbase.env -o pathbase.env
 ```
 
 Try it:

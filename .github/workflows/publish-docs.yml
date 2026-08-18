@@ -39,7 +39,7 @@ jobs:
 
       - name: Build Jekyll source tree
         run: |
-          python scripts/build_pages_site.py --output _site_src
+          mkpages build docs/ --output _site_src
 
       - name: Build site with Jekyll
         uses: actions/jekyll-build-pages@v1

@@ -1,0 +1,18 @@
+title: pathbase
+description: Lightweight bidirectional filesystem path templates for Python.
+theme: default
+navigation:
+  - label: Home
+    href: /
+  - label: API
+    href: /api/
+  - label: Examples
+    href: /examples/
+  - label: Distribution
+    href: /distribution/
+  - label: Overrides
+    href: /overrides/
+  - label: GitHub
+    href: https://github.com/rsgalloway/pathbase
+  - label: PyPI
+    href: https://pypi.org/project/pathbase/

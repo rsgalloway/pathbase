@@ -39,7 +39,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Utilities",
 ]
-optional-dependencies = { dev = ["pytest", "flake8==7.1.1", "mccabe==0.7.0", "isort==5.13.2", "black==24.8.0"], test = ["pytest"] }
+optional-dependencies = { dev = ["pytest", "flake8==7.1.1", "mccabe==0.7.0", "isort==5.13.2", "black==24.8.0", "mkpages"], test = ["pytest"] }
 
 [project.scripts]
 pathbase = "pathbase.cli:main"

@@ -1,16 +1,29 @@
+---
+layout: default
+title: Pathbase Examples
+description: Example env layouts and parsing patterns for common pathbase workflows.
+---
+
 # Pathbase Examples
+
+This section collects example `pathbase.env` layouts for different industries
+and use cases. The example env files themselves still live under `examples/` in
+the repository.
 
 ## Example Flavors
 
 For concrete, domain-specific `pathbase.env` examples, see:
 
-- [Examples Overview](/examples/README.md)
-- [VFX](/examples/vfx/README.md)
-- [Animation](/examples/animation/README.md)
-- [Data Pipeline](/examples/data-pipeline/README.md)
-- [Logs](/examples/logs/README.md)
-- [ML Artifacts](/examples/ml-artifacts/README.md)
-- [Overrides](/examples/overrides/README.md)
+- [VFX](vfx/)
+- [Animation](animation/)
+- [Data Pipeline](data-pipeline/)
+- [Logs](logs/)
+- [ML Artifacts](ml-artifacts/)
+- [Overrides](overrides/)
+
+These examples are not part of the `pathbase` core API. They are intended to
+show different ways to model path templates without locking the library to one
+domain.
 
 ## Parse a Filepath Without Knowing the Template
 
@@ -47,7 +60,7 @@ without manually specifying the template name.
 
 The same auto-discovery model is available in Python API integrations via
 `match_template(path, env=...)` and `Template.from_path(path, env=...)`. See
-[API](api.md) for examples.
+[API](../api.md) for examples.
 
 If `envstack` is not installed, `pathbase` can still discover templates from
 plain environment variables:
@@ -432,17 +445,16 @@ Expected output:
 
 ## Envstack Example
 
-The repository includes several domain-specific env examples under
-[examples/README.md](../examples/README.md), showing how template strings can
-be supplied from environment configuration while keeping `pathbase` itself
-dependency-free.
+The repository includes several domain-specific env examples under this
+section, showing how template strings can be supplied from environment
+configuration while keeping `pathbase` itself dependency-free.
 
 For the shared-defaults plus project-overrides pattern, see
-[Overrides](overrides.md).
+[Overrides](../overrides.md).
 
 For `distman` target selection and deployment examples, including selecting an
 example flavor while always deploying to the same `pathbase.env` destination, see
-[Distribution](distribution.md).
+[Distribution](../distribution.md).
 
 ## CLI Examples
 
