@@ -1,5 +1,5 @@
 {
-  "description": "Token rules for the vfx example; see docs/api.md#token-rules",
+  "description": "Shared studio token rules, the baseline every show inherits; see docs/api.md#token-rules",
   "rules": {
     "show": "^[a-z][a-z0-9]*$",
     "sequence": "^[a-z]+[0-9]+$",

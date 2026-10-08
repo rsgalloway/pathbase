@@ -179,6 +179,25 @@ def _unanchored(rule: str) -> str:
     return rule
 
 
+def _has_inner_anchor(rule: str) -> bool:
+    """Return ``True`` when ``^`` or ``$`` appears outside a character class."""
+    escaped = in_class = False
+    for index, char in enumerate(rule):
+        if escaped:
+            escaped = False
+        elif char == "\\":
+            escaped = True
+        elif in_class:
+            # "]" right after "[" or "[^" is a literal, not the end of the class
+            if char == "]" and rule[index - 1] != "[" and rule[index - 2 : index] != "[^":
+                in_class = False
+        elif char == "[":
+            in_class = True
+        elif char in "^$":
+            return True
+    return False
+
+
 def _escape_literal(text: str) -> str:
     """Escape braces so literal template text survives ``str.format``."""
     return text.replace("{", "{{").replace("}", "}}")
@@ -193,6 +212,12 @@ def _check_rules(rules: Mapping[str, Any], where: str) -> Dict[str, str]:
             re.compile(rule)
         except re.error as err:
             raise InvalidRulesError(f"{where}: rule for {token!r} is not a valid regex: {err}")
+        # the rule is embedded in the template's pattern, so only outer anchors can go
+        if _has_inner_anchor(_unanchored(rule)):
+            raise InvalidRulesError(
+                f"{where}: rule for {token!r} may only anchor its start and end; "
+                f"group alternatives instead, e.g. ^(a|b)$"
+            )
         checked[token] = rule
     return checked
 

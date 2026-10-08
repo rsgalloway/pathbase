@@ -1,0 +1,10 @@
+{
+  "description": "Token rules for the ml-artifacts example; see docs/api.md#token-rules",
+  "rules": {
+    "project": "^[a-z][a-z0-9-]*$",
+    "experiment": "^[a-z0-9][a-z0-9-]*$",
+    "run_id": "^(run-[0-9]{3,}|[0-9a-f]{8,40})$",
+    "artifact": "^[A-Za-z0-9_-]+$",
+    "ext": "^(pt|pth|ckpt|onnx|safetensors|npz|json|yaml|csv|png)$"
+  }
+}

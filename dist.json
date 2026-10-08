@@ -21,17 +21,33 @@
             "source": "examples/animation/pathbase.env",
             "destination": "{DEPLOY_ROOT}/env/pathbase.env"
         },
+        "conf_animation": {
+            "source": "examples/animation/rules.json",
+            "destination": "{DEPLOY_ROOT}/conf/pathbase/rules.json"
+        },
         "env_data_pipeline": {
             "source": "examples/data-pipeline/pathbase.env",
             "destination": "{DEPLOY_ROOT}/env/pathbase.env"
+        },
+        "conf_data_pipeline": {
+            "source": "examples/data-pipeline/rules.json",
+            "destination": "{DEPLOY_ROOT}/conf/pathbase/rules.json"
         },
         "env_logs": {
             "source": "examples/logs/pathbase.env",
             "destination": "{DEPLOY_ROOT}/env/pathbase.env"
         },
+        "conf_logs": {
+            "source": "examples/logs/rules.json",
+            "destination": "{DEPLOY_ROOT}/conf/pathbase/rules.json"
+        },
         "env_ml": {
             "source": "examples/ml-artifacts/pathbase.env",
             "destination": "{DEPLOY_ROOT}/env/pathbase.env"
+        },
+        "conf_ml": {
+            "source": "examples/ml-artifacts/rules.json",
+            "destination": "{DEPLOY_ROOT}/conf/pathbase/rules.json"
         }
     }
 }

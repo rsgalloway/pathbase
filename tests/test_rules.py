@@ -185,3 +185,10 @@ def test_the_vfx_example_ships_rules_that_load():
 
     assert template.matches("/p/comp_main_v003.1001.exr")
     assert not template.matches("/p/comp_main_v003.1001.txt")
+
+
+def test_rules_may_anchor_only_their_start_and_end():
+    with pytest.raises(InvalidRulesError, match="group alternatives"):
+        rules_for({"run_id": "^run-[0-9]+$|^[0-9a-f]{8,}$"})
+
+    assert rules_for({"run_id": "^(run-[0-9]+|[0-9a-f]{8,})$", "name": "^[^/]+$"})

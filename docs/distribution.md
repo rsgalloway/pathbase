@@ -45,11 +45,20 @@ while the destination path stays stable for downstream tools.
 
 ## Token Rules
 
-The `vfx` example also has [token rules](./api.md#token-rules) in
-`examples/vfx/rules.json`. The `conf_vfx` target deploys them outside `env/`,
-which holds only envstack stacks:
+Each example also has [token rules](./api.md#token-rules) in a `rules.json`
+next to its `pathbase.env`, and a matching `conf_*` target that deploys them
+outside `env/`, which holds only envstack stacks:
+
+| Env target | Rules target |
+|---|---|
+| `env_vfx` | `conf_vfx` |
+| `env_animation` | `conf_animation` |
+| `env_data_pipeline` | `conf_data_pipeline` |
+| `env_logs` | `conf_logs` |
+| `env_ml` | `conf_ml` |
 
 ```bash
+dist -t env_vfx
 dist -t conf_vfx
 ```
 
