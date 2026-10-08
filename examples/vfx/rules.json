@@ -1,0 +1,14 @@
+{
+  "description": "Token rules for the vfx example templates; see docs/api.md#token-rules",
+  "rules": {
+    "ext": "^(exr|dpx|png|jpg|jpeg|tif|tiff|mov|mp4)$"
+  },
+  "templates": {
+    "FILEPATH": {
+      "rules": {
+        "version": "^[0-9]{3}$",
+        "frame": "^[0-9]{4}$"
+      }
+    }
+  }
+}

@@ -35,6 +35,7 @@ import json
 import os
 import re
 import string
+import warnings
 from functools import lru_cache
 from types import MappingProxyType
 from typing import Any, Dict, List, Mapping, Match, Optional, Pattern, Set, Tuple, Type, Union
@@ -242,20 +243,45 @@ def _read_rules(source: str, stamp: Optional[float]) -> Mapping[str, Any]:
 def load_rules(env: Optional[Mapping[str, Any]] = None) -> Mapping[str, Any]:
     """Return the rules spec named by ``PATHBASE_RULES``, or an empty one.
 
+    The value is inline JSON, or one or more JSON files separated by
+    ``os.pathsep`` (``:``, or ``;`` on Windows). Files are layered in order,
+    later ones winning: global ``rules`` merge by token, and each template's
+    ``rules`` merge by token too. A tool can so add its own file after a
+    shared one::
+
+        PATHBASE_RULES: ${PATHBASE_RULES}:${DEPLOY_ROOT}/conf/mytool/rules.json
+
+    A listed file that does not exist is skipped with a warning, so a default
+    pointing at an undeployed file costs only its rules.
+
     :param env: Environment mapping; defaults to ``os.environ``.
-    :return: Rules spec (see :func:`rules_for`); re-read when the file changes.
-    :raises InvalidRulesError: If the file or JSON cannot be read.
+    :return: Rules spec (see :func:`rules_for`); files are re-read when they change.
+    :raises InvalidRulesError: If a file or the JSON cannot be read.
     """
     source = str((os.environ if env is None else env).get(RULES_ENV_VAR) or "").strip()
     if not source:
         return {}
-    stamp = None
-    if not source.startswith("{"):
+    if source.startswith("{"):
+        return _read_rules(source, None)
+    merged: Dict[str, Any] = {"rules": {}, "templates": {}}
+    for path in filter(None, (part.strip() for part in source.split(os.pathsep))):
         try:
-            stamp = os.path.getmtime(source)
+            stamp = os.path.getmtime(path)
         except OSError:
-            stamp = None
-    return _read_rules(source, stamp)
+            warnings.warn(f"{RULES_ENV_VAR}: no rules file at {path!r}; skipped", stacklevel=2)
+            continue
+        _merge_rules(merged, _read_rules(path, stamp))
+    return merged
+
+
+def _merge_rules(merged: Dict[str, Any], spec: Mapping[str, Any]) -> None:
+    """Layer ``spec`` over ``merged`` in place; see :func:`load_rules`."""
+    if "rules" not in spec and "templates" not in spec:
+        spec = {"rules": spec}
+    merged["rules"].update(spec.get("rules") or {})
+    for name, own in (spec.get("templates") or {}).items():
+        layer = merged["templates"].setdefault(name, {"rules": {}})
+        layer["rules"].update((own or {}).get("rules") or {})
 
 
 def _choice_text(choice: str, field_type: FieldType, format_spec: Optional[str], name: str) -> str:

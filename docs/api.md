@@ -278,6 +278,18 @@ Per-template rules are layered over them, in the same shape as ioscan specs:
 }
 ```
 
+`PATHBASE_RULES` can list several files, separated by `os.pathsep` (`:`, or
+`;` on Windows). They are layered in order and later files win. Global rules
+merge token by token, and so does each template's rules. A tool can add its
+own rules after a shared file instead of copying it:
+
+```yaml
+PATHBASE_RULES: ${PATHBASE_RULES}:${DEPLOY_ROOT}/conf/mytool/rules.json
+```
+
+A listed file that does not exist is skipped with a warning. The `vfx`
+example ships a `rules.json` (see [Distribution](./distribution.md)).
+
 A rule replaces the token's default pattern, so the match finds the split
 that satisfies it. `^` and `$` anchors are optional, and a rule should not
 match a path separator. When a field has both inline choices and a rule, the

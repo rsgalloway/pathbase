@@ -30,6 +30,7 @@
 #
 
 import json
+import os
 
 import pytest
 
@@ -40,6 +41,7 @@ from pathbase import (
     InvalidTemplateError,
     Template,
     find_matching_templates,
+    load_rules,
     rules_for,
 )
 
@@ -119,7 +121,9 @@ def test_rules_are_read_from_the_environment(tmp_path):
 
 
 def test_broken_rules_are_errors_not_silently_skipped_templates(tmp_path):
-    env = {"MOVIE": MOVIE, "PATHBASE_RULES": str(tmp_path / "missing.json")}
+    broken = tmp_path / "rules.json"
+    broken.write_text("{not json")
+    env = {"MOVIE": MOVIE, "PATHBASE_RULES": str(broken)}
 
     with pytest.raises(InvalidRulesError, match="cannot read"):
         find_matching_templates("/shots/s/mov/s_v001.mov", env=env)
@@ -133,3 +137,51 @@ def test_templates_without_rules_behave_as_before():
     assert template.choices == {} and template.rules == {}
     with pytest.raises(InvalidPathError):
         template.parse("/elsewhere/s010.exr")
+
+
+def test_rules_files_layer_in_order_with_later_ones_winning(tmp_path):
+    shared = tmp_path / "shared.json"
+    shared.write_text(
+        json.dumps(
+            {
+                "rules": {"version": "^v[0-9]{3}$", "shot": "^s[0-9]+$"},
+                "templates": {"MOVIE": {"rules": {"ext": "^mov$"}}},
+            }
+        )
+    )
+    tool = tmp_path / "tool.json"
+    tool.write_text(json.dumps({"rules": {"version": "^v[0-9]{4}$"}}))
+    env = {"PATHBASE_RULES": os.pathsep.join([str(shared), "", str(tool)])}
+
+    spec = load_rules(env)
+
+    assert rules_for(spec, "MOVIE") == {
+        "version": "^v[0-9]{4}$",
+        "shot": "^s[0-9]+$",
+        "ext": "^mov$",
+    }
+
+
+def test_a_missing_rules_file_is_skipped_with_a_warning(tmp_path):
+    shared = tmp_path / "shared.json"
+    shared.write_text(json.dumps({"shot": "^s[0-9]+$"}))
+    env = {"PATHBASE_RULES": os.pathsep.join([str(tmp_path / "undeployed.json"), str(shared)])}
+
+    with pytest.warns(UserWarning, match="no rules file"):
+        spec = load_rules(env)
+
+    assert rules_for(spec) == {"shot": "^s[0-9]+$"}
+
+
+def test_the_vfx_example_ships_rules_that_load():
+    example = os.path.join(os.path.dirname(__file__), "..", "examples", "vfx", "rules.json")
+    spec = load_rules({"PATHBASE_RULES": example})
+    template = Template(
+        "/p/{task}_{descriptor}_v{version:03d}.{frame:04d}.{ext}",
+        env={},
+        name="FILEPATH",
+        rules=spec,
+    )
+
+    assert template.matches("/p/comp_main_v003.1001.exr")
+    assert not template.matches("/p/comp_main_v003.1001.txt")

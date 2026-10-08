@@ -43,6 +43,23 @@ Each of those targets deploys its selected example env file to the same
 destination. This means the target name selects which example file is disted,
 while the destination path stays stable for downstream tools.
 
+## Token Rules
+
+The `vfx` example also has [token rules](./api.md#token-rules) in
+`examples/vfx/rules.json`. The `conf_vfx` target deploys them outside `env/`,
+which holds only envstack stacks:
+
+```bash
+dist -t conf_vfx
+```
+
+```text
+{DEPLOY_ROOT}/conf/pathbase/rules.json
+```
+
+Point `PATHBASE_RULES` at that file, and add a tool's own rules after it,
+e.g. `{DEPLOY_ROOT}/conf/<tool>/rules.json`.
+
 ## Why Targets Work Well
 
 - no special [distman](https://github.com/rsgalloway/distman) flag is required
