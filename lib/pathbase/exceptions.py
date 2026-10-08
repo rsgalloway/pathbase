@@ -58,3 +58,7 @@ class AmbiguousTemplateError(PathbaseError):
 
 class PlatformResolutionError(PathbaseError):
     """Raised when a platform-specific template cannot be resolved."""
+
+
+class InvalidRulesError(PathbaseError):
+    """Raised when token rules cannot be read or a rule is not a valid regex."""

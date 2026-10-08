@@ -234,6 +234,58 @@ Choose based on the paths your tools need to parse:
 - `{frame:04d}` for concrete frame files with numeric typing
 - `{frame}` for flexible frame tokens, including frame pads like `%04d` and `%08d`
 
+## Token Rules
+
+By default a string token matches any text without a separator, and
+`{frame:04d}` matches any number of digits. Two kinds of rule narrow that.
+Both apply when parsing and matching. `format()` also checks values against
+them and raises `FieldFormatError`, so a formatted path always parses back.
+
+### Inline choices
+
+List the allowed values after the field name, separated by `|`:
+
+```text
+${ROOT}/{show}/{shot}/mov/{shot}_{version}.{ext|mov|mp4}
+```
+
+`ext` now matches only `mov` or `mp4`, so a `.png` file no longer matches this
+template. Format specs still follow a colon: `{take|1|2:02d}` matches `01` and
+`02`. A field used more than once lists its choices once; listing different
+choices for the same field is an error. `Template.choices` returns the
+allowed values for each field.
+
+### Regex rules
+
+Rules too long for inline choices are kept out of the template, as a map from
+token name to regex. They can be passed directly:
+
+```python
+template = Template.from_env(
+    "FILEPATH",
+    rules={"version": "^v[0-9]{3}$", "frame": "^[0-9]{4}$"},
+)
+```
+
+Rules can also be named by the `PATHBASE_RULES` environment variable, as a
+JSON file path or inline JSON. Global `rules` apply to every template.
+Per-template rules are layered over them, in the same shape as ioscan specs:
+
+```json
+{
+  "rules": {"version": "^v[0-9]{3}$", "shot": "^[0-9]{2}[a-z]{2}_[0-9]{4}$"},
+  "templates": {"PLATE_FILE": {"rules": {"frame": "^[0-9]{8}$"}}}
+}
+```
+
+A rule replaces the token's default pattern, so the match finds the split
+that satisfies it. `^` and `$` anchors are optional, and a rule should not
+match a path separator. When a field has both inline choices and a rule, the
+choices win. `Template.rules` returns the rules that apply to a template.
+An unreadable rules file, or a rule that is not a valid regex, raises
+`InvalidRulesError`. These errors are raised even from
+`find_matching_templates`, so a mistake cannot skip every template silently.
+
 ## Format a Path
 
 Use `Template.format(...)` when your tool already knows which template it wants
