@@ -1,0 +1,17 @@
+{
+  "description": "Token rules for the animation example; see docs/api.md#token-rules",
+  "rules": {
+    "project": "^[a-z][a-z0-9-]*$",
+    "asset": "^[a-z][A-Za-z0-9]*$",
+    "step": "^(model|rig|surface|lookdev|layout|anim)$",
+    "task": "^[a-z][a-z0-9-]*$",
+    "ext": "^(ma|mb|usd|usda|usdc|abc|fbx|blend)$"
+  },
+  "templates": {
+    "FILEPATH": {
+      "rules": {
+        "version": "^[0-9]{3}$"
+      }
+    }
+  }
+}

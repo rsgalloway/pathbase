@@ -234,6 +234,75 @@ Choose based on the paths your tools need to parse:
 - `{frame:04d}` for concrete frame files with numeric typing
 - `{frame}` for flexible frame tokens, including frame pads like `%04d` and `%08d`
 
+## Token Rules
+
+By default a string token matches any text without a separator, and
+`{frame:04d}` matches any number of digits. Two kinds of rule narrow that.
+Both apply when parsing and matching. `format()` also checks values against
+them and raises `FieldFormatError`, so a formatted path always parses back.
+
+### Inline choices
+
+List the allowed values after the field name, separated by `|`:
+
+```text
+${ROOT}/{show}/{shot}/mov/{shot}_{version}.{ext|mov|mp4}
+```
+
+`ext` now matches only `mov` or `mp4`, so a `.png` file no longer matches this
+template. Format specs still follow a colon: `{take|1|2:02d}` matches `01` and
+`02`. A field used more than once lists its choices once, on any occurrence,
+and they constrain every occurrence. Listing different choices for the same
+field is an error. `Template.choices` returns the allowed values for each
+field.
+
+### Regex rules
+
+Rules too long for inline choices are kept out of the template, as a map from
+token name to regex. They can be passed directly:
+
+```python
+template = Template.from_env(
+    "FILEPATH",
+    rules={"version": "^v[0-9]{3}$", "frame": "^[0-9]{4}$"},
+)
+```
+
+Rules can also be named by the `PATHBASE_RULES` environment variable, as a
+JSON file path or inline JSON. Global `rules` apply to every template.
+Per-template rules are layered over them, in the same shape as ioscan specs:
+
+```json
+{
+  "rules": {"version": "^v[0-9]{3}$", "shot": "^[0-9]{2}[a-z]{2}_[0-9]{4}$"},
+  "templates": {"PLATE_FILE": {"rules": {"frame": "^[0-9]{8}$"}}}
+}
+```
+
+`PATHBASE_RULES` can list several files, separated by `os.pathsep` (`:`, or
+`;` on Windows). They are layered in order and later files win. Global rules
+merge token by token, and so does each template's rules. A tool can add its
+own rules after a shared file instead of copying it:
+
+```yaml
+PATHBASE_RULES: ${PATHBASE_RULES}:${DEPLOY_ROOT}/conf/mytool/rules.json
+```
+
+A listed file that does not exist is skipped with a warning. The `vfx`
+example ships a `rules.json` (see [Distribution](./distribution.md)).
+
+A rule replaces the token's default pattern, so the match finds the split
+that satisfies it. Anchors (`^` or `\A`, `$` or `\Z`) are optional, but only at
+the very start and end: write alternatives as `^(run-[0-9]+|[0-9a-f]{8})$`, not
+`^run-[0-9]+$|^[0-9a-f]{8}$`. A rule should not match a path separator. A
+rule that keeps a delimiter out of a token, such as `^[a-z][a-z0-9-]*$` for
+`{task}` in `{task}_{descriptor}`, also makes the split between neighbouring
+tokens unambiguous. When a field has both inline choices and a rule, the
+choices win, and `Template.rules` returns only the rules in effect.
+An unreadable rules file, or a rule that is not a valid regex, raises
+`InvalidRulesError`. These errors are raised even from
+`find_matching_templates`, so a mistake cannot skip every template silently.
+
 ## Format a Path
 
 Use `Template.format(...)` when your tool already knows which template it wants

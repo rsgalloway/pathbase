@@ -1,0 +1,8 @@
+{
+  "description": "bigbuckbunny's own rules, layered after the shared ones; see docs/overrides.md#token-rules",
+  "rules": {
+    "sequence": "^seq[0-9]{3}$",
+    "shot": "^shot[0-9]{3}$",
+    "step": "^(layout|anim|fx|lighting|comp|render)$"
+  }
+}

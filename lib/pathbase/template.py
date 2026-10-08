@@ -31,9 +31,12 @@
 
 """Template parsing and formatting primitives."""
 
+import json
 import os
 import re
 import string
+import warnings
+from functools import lru_cache
 from types import MappingProxyType
 from typing import Any, Dict, List, Mapping, Match, Optional, Pattern, Set, Tuple, Type, Union
 
@@ -41,6 +44,7 @@ from pathbase.exceptions import (
     AmbiguousTemplateError,
     FieldFormatError,
     InvalidPathError,
+    InvalidRulesError,
     InvalidTemplateError,
     MissingFieldError,
     PlatformResolutionError,
@@ -52,6 +56,13 @@ PathInput = Union[str, os.PathLike]
 
 ENV_VAR_RE: Pattern[str] = re.compile(r"\$\{([^}]+)\}|\$(\w+)")
 SEPARATOR_RE: Pattern[str] = re.compile(r"[\\/]")
+
+#: Environment variable holding token rules: a JSON file path, or inline JSON.
+RULES_ENV_VAR = "PATHBASE_RULES"
+#: Separates a field name from its allowed values: ``{ext|mov|mp4}``.
+CHOICE_SEPARATOR = "|"
+
+Rules = Mapping[str, str]
 
 
 def _escape_env_vars(template: str) -> str:
@@ -91,7 +102,7 @@ def _iter_template_items(env: Mapping[str, Any]) -> List[Tuple[str, str]]:
     formatter = string.Formatter()
     items = []
     for key, value in env.items():
-        if not isinstance(value, str) or not value:
+        if key == RULES_ENV_VAR or not isinstance(value, str) or not value:
             continue
         if "{" not in value or "}" not in value:
             continue
@@ -149,6 +160,173 @@ def _load_platform_environment(
         ) from err
 
 
+def _split_field(field_name: str) -> Tuple[str, Optional[Tuple[str, ...]]]:
+    """Split ``ext|mov|mp4`` into the field name and its allowed values."""
+    if CHOICE_SEPARATOR not in field_name:
+        return field_name, None
+    name, *choices = field_name.split(CHOICE_SEPARATOR)
+    if not name or not all(choices):
+        raise InvalidTemplateError(f"invalid choices in field {field_name!r}")
+    return name, tuple(choices)
+
+
+def _unanchored(rule: str) -> str:
+    """Drop a rule's outer anchors (``^``/``\\A``, ``$``/``\\Z``) so it can sit in a larger pattern."""
+    if rule.startswith("^"):
+        rule = rule[1:]
+    elif rule.startswith("\\A"):
+        rule = rule[2:]
+    if rule.endswith("$") and not rule.endswith("\\$"):
+        rule = rule[:-1]
+    elif rule.endswith("\\Z") and not rule.endswith("\\\\Z"):
+        rule = rule[:-2]
+    return rule
+
+
+def _has_inner_anchor(rule: str) -> bool:
+    """Return ``True`` for ``^``, ``$``, ``\\A`` or ``\\Z`` outside a character class."""
+    escaped = in_class = False
+    for index, char in enumerate(rule):
+        if escaped:
+            escaped = False
+            if char in "AZ" and not in_class:
+                return True
+        elif char == "\\":
+            escaped = True
+        elif in_class:
+            # "]" right after "[" or "[^" is a literal, not the end of the class
+            if char == "]" and rule[index - 1] != "[" and rule[index - 2 : index] != "[^":
+                in_class = False
+        elif char == "[":
+            in_class = True
+        elif char in "^$":
+            return True
+    return False
+
+
+def _escape_literal(text: str) -> str:
+    """Escape braces so literal template text survives ``str.format``."""
+    return text.replace("{", "{{").replace("}", "}}")
+
+
+def _check_rules(rules: Mapping[str, Any], where: str) -> Dict[str, str]:
+    checked = {}
+    for token, rule in (rules or {}).items():
+        if not isinstance(rule, str):
+            raise InvalidRulesError(f"{where}: rule for {token!r} must be a regex string")
+        try:
+            re.compile(rule)
+        except re.error as err:
+            raise InvalidRulesError(f"{where}: rule for {token!r} is not a valid regex: {err}")
+        # the rule is embedded in the template's pattern, so only outer anchors can go
+        if _has_inner_anchor(_unanchored(rule)):
+            raise InvalidRulesError(
+                f"{where}: rule for {token!r} may only anchor its start and end; "
+                f"group alternatives instead, e.g. ^(a|b)$"
+            )
+        checked[token] = rule
+    return checked
+
+
+def rules_for(
+    spec: Optional[Mapping[str, Any]], template_name: Optional[str] = None
+) -> Dict[str, str]:
+    """Return the token rules that apply to one template.
+
+    ``spec`` is either a flat ``{token: regex}`` map, which applies to every
+    template, or the ioscan-style shape with global ``rules`` and per-template
+    ``templates.<NAME>.rules`` layered over them::
+
+        {"rules": {"version": "^v[0-9]{3}$"},
+         "templates": {"PLATE_FILE": {"rules": {"frame": "^[0-9]{8}$"}}}}
+
+    :param spec: Rules spec, or ``None``.
+    :param template_name: Template name, for per-template rules.
+    :return: Token name to regex.
+    :raises InvalidRulesError: If a rule is not a valid regex.
+    """
+    if not spec:
+        return {}
+    if "rules" not in spec and "templates" not in spec:
+        return _check_rules(spec, "rules")
+    rules = _check_rules(spec.get("rules") or {}, "rules")
+    if template_name:
+        own = ((spec.get("templates") or {}).get(template_name) or {}).get("rules") or {}
+        rules.update(_check_rules(own, f"templates.{template_name}.rules"))
+    return rules
+
+
+@lru_cache(maxsize=16)
+def _read_rules(source: str, stamp: Optional[float]) -> Mapping[str, Any]:
+    try:
+        if source.lstrip().startswith("{"):
+            data = json.loads(source)
+        else:
+            with open(source, encoding="utf-8") as handle:
+                data = json.load(handle)
+    except (OSError, ValueError) as err:
+        raise InvalidRulesError(f"cannot read {RULES_ENV_VAR} ({source!r}): {err}") from err
+    if not isinstance(data, dict):
+        raise InvalidRulesError(f"{RULES_ENV_VAR} must hold a JSON object")
+    return MappingProxyType(data)
+
+
+def load_rules(env: Optional[Mapping[str, Any]] = None) -> Mapping[str, Any]:
+    """Return the rules spec named by ``PATHBASE_RULES``, or an empty one.
+
+    The value is inline JSON, or one or more JSON files separated by
+    ``os.pathsep`` (``:``, or ``;`` on Windows). Files are layered in order,
+    later ones winning: global ``rules`` merge by token, and each template's
+    ``rules`` merge by token too. A tool can so add its own file after a
+    shared one::
+
+        PATHBASE_RULES: ${PATHBASE_RULES}:${DEPLOY_ROOT}/conf/mytool/rules.json
+
+    A listed file that does not exist is skipped with a warning, so a default
+    pointing at an undeployed file costs only its rules.
+
+    :param env: Environment mapping; defaults to ``os.environ``.
+    :return: Rules spec (see :func:`rules_for`); files are re-read when they change.
+    :raises InvalidRulesError: If a file or the JSON cannot be read.
+    """
+    source = str((os.environ if env is None else env).get(RULES_ENV_VAR) or "").strip()
+    if not source:
+        return {}
+    if source.startswith("{"):
+        return _read_rules(source, None)
+    merged: Dict[str, Any] = {"rules": {}, "templates": {}}
+    for path in filter(None, (part.strip() for part in source.split(os.pathsep))):
+        try:
+            stamp = os.path.getmtime(path)
+        except OSError:
+            warnings.warn(f"{RULES_ENV_VAR}: no rules file at {path!r}; skipped", stacklevel=2)
+            continue
+        _merge_rules(merged, _read_rules(path, stamp))
+    return merged
+
+
+def _merge_rules(merged: Dict[str, Any], spec: Mapping[str, Any]) -> None:
+    """Layer ``spec`` over ``merged`` in place; see :func:`load_rules`."""
+    if "rules" not in spec and "templates" not in spec:
+        spec = {"rules": spec}
+    merged["rules"].update(spec.get("rules") or {})
+    for name, own in (spec.get("templates") or {}).items():
+        layer = merged["templates"].setdefault(name, {"rules": {}})
+        layer["rules"].update((own or {}).get("rules") or {})
+
+
+def _choice_text(choice: str, field_type: FieldType, format_spec: Optional[str], name: str) -> str:
+    """Return a choice as it appears in a path, e.g. ``2`` as ``02`` for ``02d``."""
+    if field_type is str:
+        return choice
+    try:
+        return format(field_type(choice), format_spec or "")
+    except (TypeError, ValueError) as err:
+        raise InvalidTemplateError(
+            f"choice {choice!r} for field {name!r} is not a {field_type.__name__}"
+        ) from err
+
+
 def _infer_type(format_spec: Optional[str]) -> FieldType:
     """Infer the field type from a simple Python format spec."""
     if not format_spec:
@@ -173,6 +351,7 @@ class Template:
         env: Optional[Mapping[str, Any]] = None,
         expand_env: bool = True,
         name: Optional[str] = None,
+        rules: Optional[Mapping[str, Any]] = None,
     ) -> None:
         if not template:
             raise InvalidTemplateError("template cannot be empty")
@@ -191,8 +370,13 @@ class Template:
             self._parts = tuple(self._formatter.parse(self._format_template))
         except ValueError as err:
             raise InvalidTemplateError(str(err)) from err
+        spec = load_rules(self._env) if rules is None else rules
+        self._rules: Dict[str, str] = rules_for(spec, name)
         self._fields: List[str] = []
         self._formats: Dict[str, FieldType] = {}
+        self._choices: Dict[str, Tuple[str, ...]] = {}
+        self._choice_texts: Dict[str, Tuple[str, ...]] = {}
+        self._specs: Dict[str, str] = {}
         try:
             self._pattern = self._compile_pattern()
         except re.error as err:
@@ -230,6 +414,23 @@ class Template:
         return MappingProxyType(self._formats)
 
     @property
+    def choices(self) -> Mapping[str, Tuple[str, ...]]:
+        """Return a read-only mapping of field names to their allowed values."""
+        return MappingProxyType(self._choices)
+
+    @property
+    def rules(self) -> Mapping[str, str]:
+        """Return a read-only mapping of field names to the regex rules that apply."""
+        # inline choices take precedence, so a rule on such a field is not in effect
+        return MappingProxyType(
+            {
+                name: rule
+                for name, rule in self._rules.items()
+                if name in self._formats and name not in self._choices
+            }
+        )
+
+    @property
     def pattern(self) -> str:
         """Return the compiled regex pattern string used for parsing."""
         return self._pattern.pattern
@@ -241,6 +442,7 @@ class Template:
         *,
         env: Optional[Mapping[str, Any]] = None,
         expand_env: bool = True,
+        rules: Optional[Mapping[str, Any]] = None,
     ) -> "Template":
         """Construct a template from an environment variable."""
         env_map = os.environ if env is None else env
@@ -248,7 +450,7 @@ class Template:
             template = env_map[name]
         except KeyError as err:
             raise MissingFieldError(f"environment variable not found: {name}") from err
-        return cls(str(template), env=env_map, expand_env=expand_env, name=name)
+        return cls(str(template), env=env_map, expand_env=expand_env, name=name, rules=rules)
 
     @classmethod
     def from_path(
@@ -258,31 +460,49 @@ class Template:
         env: Optional[Mapping[str, Any]] = None,
         template: Optional[str] = None,
         expand_env: bool = True,
+        rules: Optional[Mapping[str, Any]] = None,
     ) -> "Template":
         """Construct a template by env var name or by matching a concrete path."""
         if template is not None:
-            return cls.from_env(template, env=env, expand_env=expand_env)
-        _, matched = match_template(path, env=env, expand_env=expand_env)
+            return cls.from_env(template, env=env, expand_env=expand_env, rules=rules)
+        _, matched = match_template(path, env=env, expand_env=expand_env, rules=rules)
         return matched
 
     def _compile_pattern(self) -> Pattern[str]:
         pattern_parts = ["^"]
+        format_parts = []
         seen: Set[str] = set()
 
-        for literal_text, field_name, format_spec, conversion in self._parts:
+        # a field's choices may be written on any occurrence, so collect them
+        # first: the first occurrence is the capture group they must constrain
+        declared: Dict[str, Tuple[str, ...]] = {}
+        for _, raw_name, _, _ in self._parts:
+            if raw_name is None:
+                continue
+            field_name, choices = _split_field(raw_name)
+            if choices is not None:
+                if declared.setdefault(field_name, choices) != choices:
+                    raise InvalidTemplateError(f"field {field_name!r} uses conflicting choices")
+
+        for literal_text, raw_name, format_spec, conversion in self._parts:
             if conversion is not None:
                 raise InvalidTemplateError("field conversions are not supported")
 
             pattern_parts.append(re.escape(_normalize_separators(literal_text)))
+            format_parts.append(_escape_literal(literal_text))
 
-            if field_name is None:
+            if raw_name is None:
                 continue
 
+            field_name, _ = _split_field(raw_name)
+            # str.format sees the plain field; choices only constrain matching
+            format_parts.append("{" + field_name + (":" + format_spec if format_spec else "") + "}")
             inferred_type = _infer_type(format_spec)
 
             if field_name not in self._formats:
                 self._fields.append(field_name)
                 self._formats[field_name] = inferred_type
+                self._specs[field_name] = format_spec or ""
             elif self._formats[field_name] is not inferred_type:
                 raise InvalidTemplateError(f"field {field_name!r} uses conflicting format types")
 
@@ -290,17 +510,48 @@ class Template:
                 pattern_parts.append(f"(?P={field_name})")
                 continue
 
-            if inferred_type is int:
-                pattern_parts.append(rf"(?P<{field_name}>-?\d+)")
+            if field_name in declared:
+                self._choices[field_name] = declared[field_name]
+                # numbers are listed as values; the path holds them formatted
+                self._choice_texts[field_name] = tuple(
+                    _choice_text(choice, inferred_type, format_spec, field_name)
+                    for choice in declared[field_name]
+                )
+                options = "|".join(re.escape(text) for text in self._choice_texts[field_name])
+                value_pattern = f"(?:{options})"
+            elif field_name in self._rules:
+                value_pattern = f"(?:{_unanchored(self._rules[field_name])})"
+            elif inferred_type is int:
+                value_pattern = r"-?\d+"
             elif inferred_type is float:
-                pattern_parts.append(rf"(?P<{field_name}>-?(?:\d+(?:\.\d*)?|\.\d+))")
+                value_pattern = r"-?(?:\d+(?:\.\d*)?|\.\d+)"
             else:
-                pattern_parts.append(rf"(?P<{field_name}>[^,;\\/]*)")
+                value_pattern = r"[^,;\\/]*"
+            pattern_parts.append(f"(?P<{field_name}>{value_pattern})")
 
             seen.add(field_name)
 
         pattern_parts.append("$")
+        self._format_template = "".join(format_parts)
         return re.compile("".join(pattern_parts))
+
+    def _check_value(self, name: str, value: object) -> None:
+        """Raise when a value would format to text its field cannot parse back."""
+        if name not in self._choices and name not in self._rules:
+            return
+        try:
+            text = format(value, self._specs.get(name, ""))
+        except (TypeError, ValueError) as err:
+            raise FieldFormatError(f"field {name!r}: {err}") from err
+        choices = self._choices.get(name)
+        if choices is not None:
+            if text not in self._choice_texts[name]:
+                raise FieldFormatError(
+                    f"field {name!r} must be one of {', '.join(choices)}; got {text!r}"
+                )
+            return
+        if not re.fullmatch(_unanchored(self._rules[name]), text):
+            raise FieldFormatError(f"field {name!r} must match {self._rules[name]!r}; got {text!r}")
 
     def _coerce_field(self, name: str, value: Any) -> object:
         expected_type = self._formats.get(name, str)
@@ -321,6 +572,8 @@ class Template:
             raise MissingFieldError(f"missing required fields: {', '.join(missing)}")
 
         formatted = {name: self._coerce_field(name, value) for name, value in fields.items()}
+        for name in self._fields:
+            self._check_value(name, formatted[name])
 
         try:
             return self._format_template.format(**formatted)
@@ -405,18 +658,26 @@ def find_matching_templates(
     *,
     env: Optional[Mapping[str, Any]] = None,
     expand_env: bool = True,
+    rules: Optional[Mapping[str, Any]] = None,
 ) -> List[Tuple[str, Template]]:
-    """Return all environment templates that match a given path."""
+    """Return all environment templates that match a given path.
+
+    :param rules: Token rules spec (see :func:`rules_for`); defaults to the
+        one named by ``PATHBASE_RULES`` in ``env``.
+    """
     env_map = os.environ if env is None else env
     path_str = _coerce_path_input(path)
     matches = []
+    # read once, outside the loop, so a broken rules file is an error rather
+    # than every template being skipped as invalid
+    spec = load_rules(env_map) if rules is None else rules
 
     items = _iter_template_items(env_map)
     items.sort(key=lambda item: _template_depth(item[1]), reverse=True)
 
     for name, value in items:
         try:
-            template = Template(value, env=env_map, expand_env=expand_env, name=name)
+            template = Template(value, env=env_map, expand_env=expand_env, name=name, rules=spec)
         except InvalidTemplateError:
             continue
         if template.matches(path_str):
@@ -430,10 +691,11 @@ def match_template(
     *,
     env: Optional[Mapping[str, Any]] = None,
     expand_env: bool = True,
+    rules: Optional[Mapping[str, Any]] = None,
 ) -> Tuple[str, Template]:
     """Return the unique matching environment template for a path."""
     path_str = _coerce_path_input(path)
-    matches = find_matching_templates(path_str, env=env, expand_env=expand_env)
+    matches = find_matching_templates(path_str, env=env, expand_env=expand_env, rules=rules)
 
     if not matches:
         raise InvalidPathError("no matching template found for path: {0}".format(path_str))

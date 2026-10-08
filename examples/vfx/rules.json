@@ -1,0 +1,20 @@
+{
+  "description": "Token rules for the vfx example; see docs/api.md#token-rules",
+  "rules": {
+    "show": "^[a-z][a-z0-9]*$",
+    "sequence": "^[a-z]+[0-9]+$",
+    "shot": "^[a-z]+[0-9]+$",
+    "step": "^[a-z]+$",
+    "task": "^[a-z][a-z0-9-]*$",
+    "descriptor": "^[a-z][a-z0-9-]*$",
+    "ext": "^(exr|dpx|png|jpg|jpeg|tif|tiff|mov|mp4)$"
+  },
+  "templates": {
+    "FILEPATH": {
+      "rules": {
+        "version": "^[0-9]{3}$",
+        "frame": "^[0-9]{4}$"
+      }
+    }
+  }
+}

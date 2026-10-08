@@ -82,6 +82,28 @@ folder layout, and changes the filename pattern for one project.
 
 Overrides should come from envstack hierarchy, not from ad hoc shell exports.
 
+## Token Rules
+
+[Token rules](./api.md#token-rules) layer in the same way. List the shared
+rules file first and the project's after it in `PATHBASE_RULES`. The project's
+rules then replace the shared ones token by token, and leave the rest in
+force. In `examples/overrides`, `shared/rules.json` allows any lower-case
+sequence and shot names, and `bigbuckbunny/rules.json` narrows them for one
+show:
+
+```json
+{
+  "rules": {
+    "sequence": "^seq[0-9]{3}$",
+    "shot": "^shot[0-9]{3}$",
+    "step": "^(layout|anim|fx|lighting|comp|render)$"
+  }
+}
+```
+
+With both files listed, `.../sq1/shot010/...` no longer matches for
+bigbuckbunny, while other shows keep the shared rules.
+
 ## Current and Legacy Templates
 
 Sometimes a production changes its filepath spec over time but still needs to

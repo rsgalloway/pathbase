@@ -42,25 +42,35 @@ from pathbase.exceptions import (
     AmbiguousTemplateError,
     FieldFormatError,
     InvalidPathError,
+    InvalidRulesError,
     InvalidTemplateError,
     MissingFieldError,
     PathbaseError,
     PlatformResolutionError,
 )
-from pathbase.template import Template, find_matching_templates, match_template
+from pathbase.template import (
+    Template,
+    find_matching_templates,
+    load_rules,
+    match_template,
+    rules_for,
+)
 
 __all__ = [
     "AmbiguousTemplateError",
     "FieldFormatError",
     "InvalidPathError",
+    "InvalidRulesError",
     "InvalidTemplateError",
     "MissingFieldError",
     "PathbaseError",
     "PlatformResolutionError",
     "Template",
     "find_matching_templates",
+    "load_rules",
     "match_template",
+    "rules_for",
     "__version__",
 ]
 
-__version__ = "0.1.2"
+__version__ = "0.2.0"
