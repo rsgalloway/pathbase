@@ -171,20 +171,26 @@ def _split_field(field_name: str) -> Tuple[str, Optional[Tuple[str, ...]]]:
 
 
 def _unanchored(rule: str) -> str:
-    """Drop a rule's ``^`` and ``$`` anchors so it can sit inside a larger pattern."""
+    """Drop a rule's outer anchors (``^``/``\\A``, ``$``/``\\Z``) so it can sit in a larger pattern."""
     if rule.startswith("^"):
         rule = rule[1:]
+    elif rule.startswith("\\A"):
+        rule = rule[2:]
     if rule.endswith("$") and not rule.endswith("\\$"):
         rule = rule[:-1]
+    elif rule.endswith("\\Z") and not rule.endswith("\\\\Z"):
+        rule = rule[:-2]
     return rule
 
 
 def _has_inner_anchor(rule: str) -> bool:
-    """Return ``True`` when ``^`` or ``$`` appears outside a character class."""
+    """Return ``True`` for ``^``, ``$``, ``\\A`` or ``\\Z`` outside a character class."""
     escaped = in_class = False
     for index, char in enumerate(rule):
         if escaped:
             escaped = False
+            if char in "AZ" and not in_class:
+                return True
         elif char == "\\":
             escaped = True
         elif in_class:
@@ -415,8 +421,13 @@ class Template:
     @property
     def rules(self) -> Mapping[str, str]:
         """Return a read-only mapping of field names to the regex rules that apply."""
+        # inline choices take precedence, so a rule on such a field is not in effect
         return MappingProxyType(
-            {name: rule for name, rule in self._rules.items() if name in self._formats}
+            {
+                name: rule
+                for name, rule in self._rules.items()
+                if name in self._formats and name not in self._choices
+            }
         )
 
     @property
@@ -462,6 +473,17 @@ class Template:
         format_parts = []
         seen: Set[str] = set()
 
+        # a field's choices may be written on any occurrence, so collect them
+        # first: the first occurrence is the capture group they must constrain
+        declared: Dict[str, Tuple[str, ...]] = {}
+        for _, raw_name, _, _ in self._parts:
+            if raw_name is None:
+                continue
+            field_name, choices = _split_field(raw_name)
+            if choices is not None:
+                if declared.setdefault(field_name, choices) != choices:
+                    raise InvalidTemplateError(f"field {field_name!r} uses conflicting choices")
+
         for literal_text, raw_name, format_spec, conversion in self._parts:
             if conversion is not None:
                 raise InvalidTemplateError("field conversions are not supported")
@@ -472,7 +494,7 @@ class Template:
             if raw_name is None:
                 continue
 
-            field_name, choices = _split_field(raw_name)
+            field_name, _ = _split_field(raw_name)
             # str.format sees the plain field; choices only constrain matching
             format_parts.append("{" + field_name + (":" + format_spec if format_spec else "") + "}")
             inferred_type = _infer_type(format_spec)
@@ -484,21 +506,17 @@ class Template:
             elif self._formats[field_name] is not inferred_type:
                 raise InvalidTemplateError(f"field {field_name!r} uses conflicting format types")
 
-            if choices is not None:
-                if self._choices.get(field_name, choices) != choices:
-                    raise InvalidTemplateError(f"field {field_name!r} uses conflicting choices")
-                self._choices[field_name] = choices
-                # numbers are listed as values; the path holds them formatted
-                self._choice_texts[field_name] = tuple(
-                    _choice_text(choice, inferred_type, format_spec, field_name)
-                    for choice in choices
-                )
-
             if field_name in seen:
                 pattern_parts.append(f"(?P={field_name})")
                 continue
 
-            if field_name in self._choices:
+            if field_name in declared:
+                self._choices[field_name] = declared[field_name]
+                # numbers are listed as values; the path holds them formatted
+                self._choice_texts[field_name] = tuple(
+                    _choice_text(choice, inferred_type, format_spec, field_name)
+                    for choice in declared[field_name]
+                )
                 options = "|".join(re.escape(text) for text in self._choice_texts[field_name])
                 value_pattern = f"(?:{options})"
             elif field_name in self._rules:

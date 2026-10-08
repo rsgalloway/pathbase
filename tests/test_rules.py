@@ -192,3 +192,27 @@ def test_rules_may_anchor_only_their_start_and_end():
         rules_for({"run_id": "^run-[0-9]+$|^[0-9a-f]{8,}$"})
 
     assert rules_for({"run_id": "^(run-[0-9]+|[0-9a-f]{8,})$", "name": "^[^/]+$"})
+
+
+def test_backslash_anchors_count_as_outer_or_inner_anchors():
+    assert Template("/{name}", env={}, rules={"name": r"\Afoo\Z"}).matches("/foo")
+    with pytest.raises(InvalidRulesError, match="group alternatives"):
+        rules_for({"name": r"\Afoo\Z|\Abar\Z"})
+    # an escaped backslash before Z is a literal, not an anchor
+    assert rules_for({"name": r"^x\\Z$"})
+
+
+def test_rules_report_only_the_rules_in_effect():
+    template = Template("/{ext|mov}/{name}.x", env={}, rules={"ext": "^png$", "name": "^a$"})
+
+    # inline choices win over a rule for the same field
+    assert dict(template.rules) == {"name": "^a$"}
+    assert template.matches("/mov/a.x")
+
+
+def test_choices_on_a_later_occurrence_constrain_the_first():
+    template = Template("/{ext}/{name}.{ext|mov|mp4}", env={})
+
+    assert template.matches("/mov/clip.mov")
+    assert not template.matches("/png/clip.png")
+    assert dict(template.choices) == {"ext": ("mov", "mp4")}

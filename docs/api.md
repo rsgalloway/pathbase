@@ -251,9 +251,10 @@ ${ROOT}/{show}/{shot}/mov/{shot}_{version}.{ext|mov|mp4}
 
 `ext` now matches only `mov` or `mp4`, so a `.png` file no longer matches this
 template. Format specs still follow a colon: `{take|1|2:02d}` matches `01` and
-`02`. A field used more than once lists its choices once; listing different
-choices for the same field is an error. `Template.choices` returns the
-allowed values for each field.
+`02`. A field used more than once lists its choices once, on any occurrence,
+and they constrain every occurrence. Listing different choices for the same
+field is an error. `Template.choices` returns the allowed values for each
+field.
 
 ### Regex rules
 
@@ -291,13 +292,13 @@ A listed file that does not exist is skipped with a warning. The `vfx`
 example ships a `rules.json` (see [Distribution](./distribution.md)).
 
 A rule replaces the token's default pattern, so the match finds the split
-that satisfies it. `^` and `$` anchors are optional, but only at the very
-start and end: write alternatives as `^(run-[0-9]+|[0-9a-f]{8})$`, not
+that satisfies it. Anchors (`^` or `\A`, `$` or `\Z`) are optional, but only at
+the very start and end: write alternatives as `^(run-[0-9]+|[0-9a-f]{8})$`, not
 `^run-[0-9]+$|^[0-9a-f]{8}$`. A rule should not match a path separator. A
 rule that keeps a delimiter out of a token, such as `^[a-z][a-z0-9-]*$` for
 `{task}` in `{task}_{descriptor}`, also makes the split between neighbouring
 tokens unambiguous. When a field has both inline choices and a rule, the
-choices win. `Template.rules` returns the rules that apply to a template.
+choices win, and `Template.rules` returns only the rules in effect.
 An unreadable rules file, or a rule that is not a valid regex, raises
 `InvalidRulesError`. These errors are raised even from
 `find_matching_templates`, so a mistake cannot skip every template silently.
